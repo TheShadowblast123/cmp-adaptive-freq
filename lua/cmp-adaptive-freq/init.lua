@@ -226,6 +226,7 @@ end
 
 function M:is_available()
 	local ft = vim.bo.filetype
+	print("Available")
 	return ft == "markdown" or ft == "org" or ft == "text" or ft == "plain" or ft == "latex" or ft == "asciidoc"
 end
 --- Setup function
