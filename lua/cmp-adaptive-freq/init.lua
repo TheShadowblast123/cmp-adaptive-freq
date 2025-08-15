@@ -224,6 +224,9 @@ function M:complete(params, callback)
 	callback({ items = items, isIncomplete = #items < #candidates })
 end
 
+function M:is_available()
+	return is_supported_ft(vim.bo.filetype)
+end
 --- Setup function
 function M.setup(opts)
 	config = default_config
@@ -267,13 +270,11 @@ function M.setup(opts)
 			end
 		end,
 	})
-	-- Register source
-	cmp.register_source("cmp-adaptive_freq", {
-		complete = M.complete,
-		is_available = function()
-			return is_supported_ft(vim.bo.filetype)
-		end,
-	})
+	vim.schedule(function()
+		cmp.register_source("cmp-adaptive_freq", M.new())
+	end)
+
+	
 end
 
 return M
