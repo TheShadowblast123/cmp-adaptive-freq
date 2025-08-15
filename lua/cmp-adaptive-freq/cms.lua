@@ -35,18 +35,11 @@ function CMS.new(depth, width, counter_bits, serialize)
 	self.counter_bits = counter_bits
 	self.hash_params = generate_hash_params(depth)
 	self.bytes_per_row = math.ceil(width * counter_bits / 8)
-	if serialize then
-		self.serialize = serialize
-	else
-		self.serialize = function ()
-			return {
-				self.depth,
-				self.width,
-				self.counter_bits,
-				self.rows
-			}
-		end
+
+	self.serialize = function ()
+		return self
 	end
+
 	---@type table<number, table<number, number>>
 	self.rows = {}
 	for i = 1, depth do
