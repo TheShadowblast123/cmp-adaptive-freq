@@ -236,10 +236,13 @@ function M.setup(opts)
 		group = group,
 		callback = function(args)
 			if is_supported_ft(vim.bo[args.buf].filetype) then
+				print("okay")
 				local hash = hash_path(vim.fn.getcwd())
 				autosave.setdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/" .. hash .. ".mpack")
 			
 				scan_buffer(args.buf)
+			else 
+				print("This isn't looking sexy")
 			end
 		end,
 	})
