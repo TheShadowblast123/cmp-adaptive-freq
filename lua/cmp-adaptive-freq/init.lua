@@ -151,7 +151,9 @@ local function calculate_score(id, context)
 
 	return score
 end
-
+M.get_keyword_pattern = function()
+    return [[\k\+]]
+end
 --- Source completion function
 function M:complete(params, callback)
 	print("HERE")
@@ -263,7 +265,7 @@ function M.setup(opts)
 		end,
 	})
 	-- Register source
-	cmp.register_source("adaptive_freq", {
+	cmp.register_source("cmp-adaptive_freq", {
 		complete = M.complete,
 		is_available = function()
 			return is_supported_ft(vim.bo.filetype)
