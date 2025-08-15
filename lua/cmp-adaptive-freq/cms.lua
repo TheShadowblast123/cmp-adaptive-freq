@@ -1,5 +1,5 @@
 local bit = require("bit")
-local band, bor, lshift, rshift = bit.band, bit.bor, bit.lshift, bit.rshift
+local band, bor, lshift, rshift, bnot = bit.band, bit.bor, bit.lshift, bit.rshift, bit.bnot
 ---@alias hash_param { a: number, b: number, P: number }
 ---@class CMS
 ---@field width number
