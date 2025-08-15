@@ -8,14 +8,21 @@ local CMS = require("cmp-adaptive-freq.cms")
 ---@field private reverse_map table<number, number> -- Map CMS key to word ID
 local Relation_Map = {}
 Relation_Map.__index = Relation_Map
-
+local serialize = function(s)
+    return {
+        cms = s.cms,
+        id_map = s.id_map,
+        reverse_map = s.reverse_map,
+        next_key = s.next_key
+    }
+	end
 ---@return Relation_Map
 function Relation_Map.new()
     ---@type Relation_Map
     local self = setmetatable({}, Relation_Map)
     
     -- Initialize CMS with 1-bit flags
-    self.cms = CMS.new(3, 512, 1)  -- depth=3, width=512, 1-bit flags
+    self.cms = CMS.new(3, 512, 1, serialize(self))  -- depth=3, width=512, 1-bit flags
     
     -- ID mapping tables
     self.id_map = {}       -- word_id -> cms_key
@@ -110,16 +117,6 @@ function Relation_Map:relation_exists(id1, id2)
     return self.cms:check_flag(relation_key)
 end
 
---- Serialize for storage
----@return table serialized_data
-function Relation_Map:serialize()
-    return {
-        cms = self.cms,
-        id_map = self.id_map,
-        reverse_map = self.reverse_map,
-        next_key = self.next_key
-    }
-end
 
 --- Deserialize from storage
 ---@param data table

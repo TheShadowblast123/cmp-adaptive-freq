@@ -21,11 +21,15 @@ local function generate_hash_params(depth)
 	return params
 end
 
+local function default_serialize(cms)
+	return cms
+end
+
 ---@param depth number   — number of hash functions (rows)
 ---@param width number   — counters per row
 ---@param counter_bits number — bits per counter (1, 2, or 8)
 ---@return CMS
-function CMS.new(depth, width, counter_bits)
+function CMS.new(depth, width, counter_bits, serialize)
 	---@type CMS
 	local self = setmetatable({}, CMS)
 	self.depth = depth
@@ -33,6 +37,7 @@ function CMS.new(depth, width, counter_bits)
 	self.counter_bits = counter_bits
 	self.hash_params = generate_hash_params(depth)
 	self.bytes_per_row = math.ceil(width * counter_bits / 8)
+	self.serialize = serialize or default_serialize(self)
 	---@type table<number, table<number, number>>
 	self.rows = {}
 	for i = 1, depth do
@@ -163,5 +168,12 @@ function CMS:check_flag(key)
     end
     return true
 end
-
+function Relation_Map:serialize()
+    return {
+        cms = self.cms,
+        id_map = self.id_map,
+        reverse_map = self.reverse_map,
+        next_key = self.next_key
+    }
+end
 return CMS

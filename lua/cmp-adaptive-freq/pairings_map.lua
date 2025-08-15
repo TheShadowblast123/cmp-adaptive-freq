@@ -7,14 +7,21 @@ local CMS = require("cmp-adaptive-freq.cms")  -- Our custom CMS module
 ---@field private reverse_map table<number, number> -- Map CMS key to word ID test
 local Pairing_Map = {}
 Pairing_Map.__index = Pairing_Map
-
+local function serialize()
+    return {
+        cms = s.cms,
+        id_map = s.id_map,
+        reverse_map = s.reverse_map,
+        next_key = s.next_key
+    }
+end
 ---@return Pairing_Map
 function Pairing_Map.new()
 	---@type Pairing_Map
     local self = setmetatable({}, Pairing_Map)
     
     -- Initialize CMS with 2-bit counters (4 levels: 0-3)
-    self.cms = CMS.new(5, 512, 2)  -- depth=5, width=512, 2-bit counters
+    self.cms = CMS.new(5, 512, 2, serialize(self))  -- depth=5, width=512, 2-bit counters
     
     -- ID mapping tables
     self.id_map = {}       -- word_id -> cms_key
@@ -115,14 +122,7 @@ end
 
 --- Serialize for storage
 ---@return table serialized_data
-function Pairing_Map:serialize()
-    return {
-        cms = self.cms,
-        id_map = self.id_map,
-        reverse_map = self.reverse_map,
-        next_key = self.next_key
-    }
-end
+
 
 --- Deserialize from storage
 ---@param data table
