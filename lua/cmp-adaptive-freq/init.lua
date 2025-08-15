@@ -155,7 +155,7 @@ local function calculate_score(id, context)
 	return score
 end
 M.get_keyword_pattern = function()
-    return [[\k\+]]
+    return [[.]]
 end
 --- Source completion function
 function M:complete(params, callback)
@@ -225,6 +225,7 @@ function M:complete(params, callback)
 end
 
 function M:is_available()
+	print("Filetype:", vim.bo.filetype)
 	return is_supported_ft(vim.bo.filetype)
 end
 --- Setup function
