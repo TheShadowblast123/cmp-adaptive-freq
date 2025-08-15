@@ -4,7 +4,7 @@ local CMS = require("cmp-adaptive-freq.cms")  -- Our custom CMS module
 ---@class Pairing_Map
 ---@field private cms CMS                -- CMS for bigram frequency
 ---@field private id_map table<number, number> -- Map word ID to CMS key
----@field private reverse_map table<number, number> -- Map CMS key to word ID
+---@field private reverse_map table<number, number> -- Map CMS key to word ID test
 local Pairing_Map = {}
 Pairing_Map.__index = Pairing_Map
 
