@@ -42,7 +42,9 @@ local function save_data(word_id_map, unigram_cms, relation_map, pairing_map)
         vim.notify("Failed to save data: " .. tostring(err), vim.log.levels.ERROR)
     end
 end
-
+function autosave.save(word_id_map, unigram_cms, relation_map, pairing_map)
+	save_data(word_id_map, unigram_cms, relation_map, pairing_map)
+end
 --- Initialize autosave system
 function autosave.setup(word_id_map, unigram_cms, relation_map, pairing_map)
     -- Wrap increment methods to mark dirty

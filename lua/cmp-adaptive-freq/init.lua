@@ -48,10 +48,6 @@ local function scan_buffer(buf)
 	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, true)
 	local window = {}
 	local window_size = 10
-	if #lines == 0 then
-		print("Empty buffer?")
-	end
-	print(#lines)
 	for _, line in ipairs(lines) do
 		for word in line:gmatch("%S+") do
 			local normalized = normalize_word(word)
@@ -82,6 +78,7 @@ local function scan_buffer(buf)
 			end
 		end
 	end
+	autosave.save(word_id_map, unigram_cms, relation_map, pairing_map)
 end
 
 --- Load data for current directory
