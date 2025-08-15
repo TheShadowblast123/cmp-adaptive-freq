@@ -155,12 +155,14 @@ end
 function M:complete(params, callback)
 	local input = params.context.cursor_before_line:match("%S+$") or ""
 	if input == "" then
+		print("No Context")
 		return callback({ items = {} })
 	end
 
 	-- Normalize input
 	local normalized_input = normalize_word(input)
 	if normalized_input == "" then
+		print("No good input")
 		return callback({ items = {} })
 	end
 
@@ -176,8 +178,9 @@ function M:complete(params, callback)
 			})
 		end
 	end
-
+	
 	if #candidates == 0 then
+		print("No candidates")
 		return callback({ items = {} })
 	end
 
@@ -208,7 +211,9 @@ function M:complete(params, callback)
 			kind = cmp.lsp.CompletionItemKind.Text,
 		})
 	end
-
+	if items == {} then
+		print("Candidates but no solutions?")
+	end
 	callback({ items = items, isIncomplete = #items < #candidates })
 end
 
