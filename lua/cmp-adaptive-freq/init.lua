@@ -96,11 +96,8 @@ local function load_data()
 
 	word_id_map = WordIDMap.new()
 	word_id_map:deserialize(data.word_id_map)
-	local function serialize(cms)
-		return cms
-	end
+
 	unigram_cms = CMS.new(4, 256, 8 )
-	unigram_cms.serialize = serialize(unigram_cms)
 	unigram_cms:deserialize(data.unigram_cms)
 
 	relation_map = RelationMap.new()
