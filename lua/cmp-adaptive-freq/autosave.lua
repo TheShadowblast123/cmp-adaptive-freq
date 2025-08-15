@@ -1,7 +1,7 @@
 local autosave = {}
 local uv = vim.loop
 -- Configurable save intervals (seconds)
-local SAVE_INTERVAL = 300 -- 5 minutes
+local SAVE_INTERVAL = 30 -- 5 minutes
 local DEBOUNCE_DELAY = 30 -- Quick save after last edit
 
 -- State tracking
