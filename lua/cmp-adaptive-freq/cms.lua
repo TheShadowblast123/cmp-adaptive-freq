@@ -21,9 +21,7 @@ local function generate_hash_params(depth)
 	return params
 end
 
-local function default_serialize(cms)
-	return cms
-end
+
 
 ---@param depth number   — number of hash functions (rows)
 ---@param width number   — counters per row
@@ -37,7 +35,7 @@ function CMS.new(depth, width, counter_bits, serialize)
 	self.counter_bits = counter_bits
 	self.hash_params = generate_hash_params(depth)
 	self.bytes_per_row = math.ceil(width * counter_bits / 8)
-	self.serialize = serialize or default_serialize(self)
+	self.serialize = serialize
 	---@type table<number, table<number, number>>
 	self.rows = {}
 	for i = 1, depth do
