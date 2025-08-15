@@ -99,7 +99,7 @@ local function load_data()
 	local function serialize(cms)
 		return cms
 	end
-	unigram_cms = CMS.new(4, 256, 8, )
+	unigram_cms = CMS.new(4, 256, 8 )
 	unigram_cms.serialize = serialize(unigram_cms)
 	unigram_cms:deserialize(data.unigram_cms)
 
