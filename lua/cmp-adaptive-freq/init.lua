@@ -273,8 +273,7 @@ function M.setup(opts)
 		end,
 	})
 	vim.schedule(function()
-		cmp.register_source("cmp-adaptive_freq", M.new())
-		print("Registered")
+		cmp.register_source("cmp-adaptive-freq", M.new())
 	end)
 
 	
