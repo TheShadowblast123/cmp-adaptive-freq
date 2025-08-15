@@ -32,8 +32,8 @@ local function save_data(word_id_map, uni, relation_map, pairing_map)
     -- Serialize with vim.mpack
     local blob = vim.mpack.encode(data)
     vim.fn.mkdir(autosave.dir, "p")
-    
-    local ok, err = pcall(vim.fn.writefile, {blob}, autosave.dir)
+    local b64 = vim.fn.system('base64', blob) 
+    local ok, err = pcall(vim.fn.writefile, {b64}, autosave.dir)
     
     if ok then
         dirty = false
