@@ -249,7 +249,7 @@ function M.setup(opts)
 		group = group,
 		callback = function(args)
 			autosave.setdir("")
-			if args.buf == context.buf then
+			if context and args.buf == context.buf then
 				context.buf = nil -- Reset context
 			end
 		end,
