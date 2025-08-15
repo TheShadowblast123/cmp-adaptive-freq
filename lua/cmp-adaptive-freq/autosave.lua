@@ -72,7 +72,7 @@ function autosave.setup(word_id_map, unigram_cms, relation_map, pairing_map)
                 save_data(word_id_map, unigram_cms, relation_map, pairing_map)
             end
         end
-    )
-end
+    ))
 
 return autosave
+end
