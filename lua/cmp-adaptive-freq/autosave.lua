@@ -32,7 +32,7 @@ local function save_data(word_id_map, uni, relation_map, pairing_map)
     -- Serialize with vim.mpack
     local blob = vim.mpack.encode(data)
     vim.fn.mkdir(autosave.dir, "p")
-	local f = assert(io.open(filepath, "wb")) -- 'wb' = write binary
+	local f = assert(io.open(autosave.dir, "wb")) -- 'wb' = write binary
     f:write(blob)
     f:close()
     
