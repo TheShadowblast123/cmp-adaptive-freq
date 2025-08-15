@@ -37,7 +37,12 @@ function CMS.new(depth, width, counter_bits, serialize)
 	self.bytes_per_row = math.ceil(width * counter_bits / 8)
 
 	self.serialize = function ()
-		return self
+		return {
+			self.depth,
+			self.width,
+			self.counter_bits,
+			self.rows
+		}
 	end
 
 	---@type table<number, table<number, number>>

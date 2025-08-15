@@ -22,7 +22,7 @@ function Pairing_Map.new()
     self.next_key = 1       -- Next available CMS key
 	function self:serialize()
     return {
-        cms = self.cms,
+        cms = self.cms:serialize(),
         id_map = self.id_map,
         reverse_map = self.reverse_map,
         next_key = self.next_key
