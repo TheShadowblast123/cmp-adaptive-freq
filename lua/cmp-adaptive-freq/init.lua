@@ -243,6 +243,7 @@ function M.setup(opts)
 				local hash = hash_path(vim.fn.getcwd())
 				autosave.setdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/" .. hash .. ".mpack")
 				scan_buffer(args.buf)
+			end
 		end,
 	})
 
