@@ -225,8 +225,8 @@ function M:complete(params, callback)
 end
 
 function M:is_available()
-	print("Filetype:", vim.bo.filetype)
-	return is_supported_ft(vim.bo.filetype)
+	local ft = vim.bo.filetype
+	return ft == "markdown" or ft == "org" or ft == "text" or ft == "plain" or ft == "latex" or ft == "asciidoc"
 end
 --- Setup function
 function M.setup(opts)
