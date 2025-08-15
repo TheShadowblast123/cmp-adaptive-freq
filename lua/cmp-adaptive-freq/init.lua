@@ -5,7 +5,7 @@ local uv = vim.loop
 local CMS = require("cms")
 local WordIDMap = require("word_id_map")
 local RelationMap = require("relations_map")
-local PairingMap = require("pairing_map")
+local PairingMap = require("pairings_map")
 local autosave = require("autosave")
 
 local M = {}
