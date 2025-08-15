@@ -153,6 +153,7 @@ end
 
 --- Source completion function
 function M:complete(params, callback)
+	print("HERE")
 	local input = params.context.cursor_before_line:match("%S+$") or ""
 	if input == "" then
 		print("No Context")
