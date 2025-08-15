@@ -1,6 +1,6 @@
 local bit = require("bit")
 local band, bor, lshift, rshift = bit.band, bit.bor, bit.lshift, bit.rshift
-local CMS = require("cms")  -- Our custom CMS module
+local CMS = require("cmp-adaptive-freq.cms")  -- Our custom CMS module
 ---@class Pairing_Map
 ---@field private cms CMS                -- CMS for bigram frequency
 ---@field private id_map table<number, number> -- Map word ID to CMS key

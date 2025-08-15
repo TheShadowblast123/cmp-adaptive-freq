@@ -1,6 +1,6 @@
 local bit = require("bit")
 local band, bor, lshift, rshift = bit.band, bit.bor, bit.lshift, bit.rshift
-local CMS = require("cms")
+local CMS = require("cmp-adaptive-freq.cms")
 
 ---@class Relation_Map
 ---@field private cms CMS                -- CMS for binary relation flags
