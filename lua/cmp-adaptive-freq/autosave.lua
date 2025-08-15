@@ -11,7 +11,7 @@ local last_activity = uv.now()
 --- Schedule save if data changed
 local function mark_dirty()
 	dirty = true
-	last_activity = os.now()
+	last_activity = os.time()
 end
 autosave.dir = ""
 ---@param string
