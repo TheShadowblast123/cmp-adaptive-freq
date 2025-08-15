@@ -87,7 +87,7 @@ function CMS:increment(key)
             self.rows[r][byte_index] = new_val
         else
             -- Extract current value
-            local mask = (1 << self.counter_bits) - 1
+            local mask = bit.lshift(1, self.counter_bits) - 1
             local current = rshift(byte, bit_offset)
             current = band(current, mask)
             
@@ -119,7 +119,7 @@ function CMS:estimate(key)
             val = byte
         else
             -- Extract bits
-            local mask = (1 << self.counter_bits) - 1
+            local mask = bit.lshift(1, self.counter_bits) - 1
             val = rshift(byte, bit_offset)
             val = band(val, mask)
         end
