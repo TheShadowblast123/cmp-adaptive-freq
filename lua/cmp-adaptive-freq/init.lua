@@ -2,11 +2,11 @@ local cmp = require("cmp")
 local uv = vim.loop
 
 -- Modules
-local CMS = require("cms")
-local WordIDMap = require("word_id_map")
-local RelationMap = require("relations_map")
-local PairingMap = require("pairings_map")
-local autosave = require("autosave")
+local CMS = require("cmp-adaptive-freq.cms")
+local WordIDMap = require("cmp-adaptive-freq.word_id_map")
+local RelationMap = require("cmp-adaptive-freq.relations_map")
+local PairingMap = require("cmp-adaptive-freq.pairings_map")
+local autosave = require("cmp-adaptive-freq.autosave")
 
 local M = {}
 local default_config = {
