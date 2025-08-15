@@ -39,7 +39,12 @@ function CMS.new(depth, width, counter_bits, serialize)
 		self.serialize = serialize
 	else
 		self.serialize = function ()
-			return self
+			return {
+				self.depth,
+				self.width,
+				self.counter_bits,
+				self.rows
+			}
 		end
 	end
 	---@type table<number, table<number, number>>

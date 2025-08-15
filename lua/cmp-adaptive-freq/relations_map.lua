@@ -22,7 +22,7 @@ function Relation_Map.new()
     local self = setmetatable({}, Relation_Map)
     
     -- Initialize CMS with 1-bit flags
-    self.cms = CMS.new(3, 512, 1, serialize(self))  -- depth=3, width=512, 1-bit flags
+    self.cms = CMS.new(3, 512, 1, function() return serialize(self) end)  -- depth=3, width=512, 1-bit flags
     
     -- ID mapping tables
     self.id_map = {}       -- word_id -> cms_key
