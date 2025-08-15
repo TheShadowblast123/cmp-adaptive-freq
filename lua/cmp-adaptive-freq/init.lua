@@ -41,13 +41,17 @@ end
 ---@param buf number
 local function scan_buffer(buf)
 	if not vim.api.nvim_buf_is_loaded(buf) then
+		print("No buffer")
 		return
 	end
 
 	local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, true)
 	local window = {}
 	local window_size = 10
-
+	if #lines == 0 then
+		print("Empty buffer?")
+	end
+	print(#lines)
 	for _, line in ipairs(lines) do
 		for word in line:gmatch("%S+") do
 			local normalized = normalize_word(word)
@@ -236,14 +240,9 @@ function M.setup(opts)
 		group = group,
 		callback = function(args)
 			if is_supported_ft(vim.bo[args.buf].filetype) then
-				print("okay")
 				local hash = hash_path(vim.fn.getcwd())
 				autosave.setdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/" .. hash .. ".mpack")
-			
 				scan_buffer(args.buf)
-			else 
-				print("This isn't looking sexy")
-			end
 		end,
 	})
 
