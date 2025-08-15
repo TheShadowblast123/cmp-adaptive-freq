@@ -14,6 +14,9 @@ local default_config = {
 	case_sensitive = true,
 	languages = { "markdown", "org", "text", "plain", "latex", "asciidoc" },
 }
+M.new = function()
+	return setmetatable({}, {__index = M})
+end
 local config = {}
 
 -- Global instances
