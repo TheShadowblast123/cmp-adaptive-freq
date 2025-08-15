@@ -15,8 +15,9 @@ local function mark_dirty()
 end
 autosave.dir = ""
 ---@param string
-function autosave.setdir(dir)
+function autosave.setdir(dir, hash)
 	autosave.dir = dir
+	autosave.hash = hash
 end
 local function save_data(word_id_map, uni, relation_map, pairing_map)
     if not dirty or autosave.dir == "" then return end
@@ -32,7 +33,7 @@ local function save_data(word_id_map, uni, relation_map, pairing_map)
     -- Serialize with vim.mpack
     local blob = vim.mpack.encode(data)
     vim.fn.mkdir(autosave.dir, "p")
-	local f = assert(io.open(autosave.dir, "wb")) -- 'wb' = write binary
+	local f = assert(io.open(autosave.dir .. autosave.hash ..".mpack", "wb")) -- 'wb' = write binary
     f:write(blob)
     f:close()
     

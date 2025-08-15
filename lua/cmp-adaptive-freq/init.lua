@@ -238,7 +238,7 @@ function M.setup(opts)
 		callback = function(args)
 			if is_supported_ft(vim.bo[args.buf].filetype) then
 				local hash = hash_path(vim.fn.getcwd())
-				autosave.setdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/" .. hash .. ".mpack")
+				autosave.setdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/", hash)
 				scan_buffer(args.buf)
 			end
 		end,
