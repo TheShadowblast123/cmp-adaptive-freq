@@ -7,7 +7,7 @@ local CMS = require("cmp-adaptive-freq.cms")  -- Our custom CMS module
 ---@field private reverse_map table<number, number> -- Map CMS key to word ID test
 local Pairing_Map = {}
 Pairing_Map.__index = Pairing_Map
-local function serialize()
+local function serialize(s)
     return {
         cms = s.cms,
         id_map = s.id_map,
