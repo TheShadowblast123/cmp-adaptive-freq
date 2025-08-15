@@ -23,7 +23,7 @@ local function save_data(word_id_map, unigram_cms, relation_map, pairing_map)
 
     local data = {
         word_id_map = word_id_map:serialize(),
-        unigram_cms = unigram_cms:serialize(),
+        unigram_cms = unigram_cms:serialize(unigram_cms),
         relation_map = relation_map:serialize(),
         pairing_map = pairing_map:serialize(),
         timestamp = os.time(),
