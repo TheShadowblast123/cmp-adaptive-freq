@@ -73,6 +73,5 @@ function autosave.setup(word_id_map, unigram_cms, relation_map, pairing_map)
             end
         end
     ))
-
-return autosave
 end
+return autosave
