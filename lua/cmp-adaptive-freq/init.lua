@@ -175,13 +175,12 @@ function M:complete(params, callback)
 
 	-- Get candidates
 	local candidates = {}
-	for _, word in ipairs(word_id_map:get_all_words()) do
+	for word, id in pairs(word_id_map.word_to_id) do
 		if word:find(normalized_input, 1, true) == 1 then
-			local word_id = word_id_map:get_id(word)
 			table.insert(candidates, {
 				word = word,
-				id = word_id,
-				score = 0, -- Will be calculated later
+				id = id,
+				score = 0,  -- Will be calculated later
 			})
 		end
 	end
