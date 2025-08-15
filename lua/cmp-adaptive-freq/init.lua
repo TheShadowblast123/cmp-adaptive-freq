@@ -220,7 +220,8 @@ end
 
 --- Setup function
 function M.setup(opts)
-	config = vim.tbl_deep_extend("force", default_config, opts or {})
+	config = default_config
+	--config = vim.tbl_deep_extend("force", default_config, opts or {})
 
 	-- Initialize or load data
 	if not load_data() then
@@ -234,9 +235,10 @@ function M.setup(opts)
 	vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost" }, {
 		group = group,
 		callback = function(args)
-			local hash = hash_path(vim.fn.getcwd())
-			autosave.setdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/" .. hash .. ".mpack")
 			if is_supported_ft(vim.bo[args.buf].filetype) then
+				local hash = hash_path(vim.fn.getcwd())
+				autosave.setdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/" .. hash .. ".mpack")
+			
 				scan_buffer(args.buf)
 			end
 		end,
