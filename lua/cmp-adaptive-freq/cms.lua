@@ -168,12 +168,4 @@ function CMS:check_flag(key)
     end
     return true
 end
-function Relation_Map:serialize()
-    return {
-        cms = self.cms,
-        id_map = self.id_map,
-        reverse_map = self.reverse_map,
-        next_key = self.next_key
-    }
-end
 return CMS
