@@ -19,7 +19,7 @@ function autosave.setdir(dir)
 	autosave.dir = dir
 end
 local function save_data(word_id_map, unigram_cms, relation_map, pairing_map)
-    if not dirty or autosave.dir = "" then return end
+    if not dirty or autosave.dir == "" then return end
 
     local data = {
         word_id_map = word_id_map:serialize(),
