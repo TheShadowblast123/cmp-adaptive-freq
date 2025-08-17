@@ -159,10 +159,9 @@ M.get_keyword_pattern = function()
 end
 --- Source completion function
 function M:complete(params, callback)
-	print("HERE")
 	local input = params.context.cursor_before_line:match("%S+$") or ""
+	print(input)
 	if input == "" then
-		print("No Context")
 		return callback({ items = {} })
 	end
 

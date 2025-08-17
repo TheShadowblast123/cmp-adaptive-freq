@@ -9,19 +9,33 @@ local band, bor, lshift, rshift, bnot = bit.band, bit.bor, bit.lshift, bit.rshif
 ---@field rows table<number, table<number, number>> row -> [byte_index] = byte
 local CMS = {}
 CMS.__index = CMS
----@param depth number
----@return hash_param[]
-local function generate_hash_params(depth)
-	local params = {}
-	for i = 1, depth do
-		local a = 19999999 -- don't question it
-		local b = 213373 -- I told you not to question it
-		params[i] = { a = a, b = b, P = 13337 }
-	end
-	return params
+
+local FIXED_WIDTH = 4096
+local FIXED_DEPTH = 6
+local MASK = FIXED_WIDTH - 1     -- width is power-of-two -> mask for modulo
+local DEFAULT_MAX = 2^31 - 1     -- saturate counters here by default
+
+local function splitmix32(x)
+  -- keep x in 32-bit unsigned space
+  x = (x + 0x9E3779B1) % 2^32
+  x = band(x, 0xffffffff)
+  x = bit.bxor(x, rshift(x, 15))
+  x = (x * 0x85ebca6b) % 2^32
+  x = bit.bxor(x, rshift(x, 13))
+  x = (x * 0xc2b2ae35) % 2^32
+  x = bit.bxor(x, rshift(x, 16))
+  return band(x, 0xffffffff)
 end
 
-
+-- combine key with row index to produce per-row hash
+local function hash_for_row(key, row)
+  -- key assumed to be a non-negative integer (word id). row is 1..depth.
+  -- mixing: incorporate row to get independent hashes per row
+  -- small tweak: add row*0x9e3779b1 to diversify seeds
+  local seed = (row * 0x9E3779B1) % 2^32
+  local v = (key + seed) % 2^32
+  return splitmix32(v)
+end
 
 ---@param depth number   — number of hash functions (rows)
 ---@param width number   — counters per row
@@ -30,49 +44,35 @@ end
 function CMS.new(depth, width, counter_bits, serialize)
 	---@type CMS
 	local self = setmetatable({}, CMS)
-	self.depth = depth
-	self.width = width
-	self.counter_bits = counter_bits
-	self.hash_params = generate_hash_params(depth)
-	self.bytes_per_row = math.ceil(width * counter_bits / 8)
+	self.depth = FIXED_DEPTH
+	self.width = FIXED_WIDTH
+	self.max_count = opts.max_count or DEFAULT_MAX
 
 	self.serialize = function ()
 		return {
 			self.depth,
 			self.width,
-			self.counter_bits,
+			32,
 			self.rows
 		}
 	end
 
 	---@type table<number, table<number, number>>
 	self.rows = {}
-	for i = 1, depth do
-		self.rows[i] = {}
-		for j = 1, self.bytes_per_row do
-			self.rows[i][j] = 0
+
+	for r = 1, self.depth do
+		local row = {}
+		for i = 1, self.width do 
+			row[i] = 0 
 		end
-		
+		self.rows[r] = row
 	end
 	return self
 end
 
--- Helper function to get byte/bit position
----@param counter_index number (1-based)
----@return number byte_index, number bit_offset
-function CMS:get_bit_position(counter_index)
-    if self.counter_bits == 8 then
-        return counter_index, 0
-    elseif self.counter_bits == 2 then
-        local byte_index = math.floor((counter_index - 1) / 4) + 1
-        local bit_offset = ((counter_index - 1) % 4) * 2
-        return byte_index, bit_offset
-    else -- 1-bit
-        local byte_index = math.floor((counter_index - 1) / 8) + 1
-        local bit_offset = (counter_index - 1) % 8
-        return byte_index, bit_offset
-    end
-end
+
+
+
 -- @param self CMS
 -- @param row number      — which hash row (1..depth)
 -- @param key number      — (e.g. word_id)
@@ -87,61 +87,38 @@ end
 
 ---@param self CMS
 ---@param key number
-function CMS:increment(key)
-    for r = 1, self.depth do
-        local counter_index = self:hash(r, key)
-        local byte_index, bit_offset = self:get_bit_position(counter_index)
-        local byte = self.rows[r][byte_index] or 0
-        
-        if self.counter_bits == 8 then
-            -- 8-bit counter: direct byte storage
-            local new_val = math.min(255, (byte or 0) + 1)
-            self.rows[r][byte_index] = new_val
-        else
-            -- Extract current value
-            local mask = bit.lshift(1, self.counter_bits) - 1
-            local current = rshift(byte, bit_offset)
-            current = band(current, mask)
-            
-            -- Increment with saturation
-            local new_val = math.min(mask, current + 1)
-            
-            -- Update byte
-            local clear_mask = bnot(lshift(mask, bit_offset))
-            local updated = band(byte, clear_mask)
-            updated = bor(updated, lshift(new_val, bit_offset))
-            self.rows[r][byte_index] = updated
-        end
-    end
+function CMS:increment(key, delta)
+	delta = delta or 1
+	-- defensive: ensure key is integer-like
+	local k = math.floor(key)
+	for r = 1, self.depth do
+		local h = hash_for_row(k, r)
+		local idx = band(h, MASK) + 1         -- 1-based index
+		local cur = self.rows[r][idx] or 0
+		local nv = cur + delta
+		if nv > self.max_count then nv = self.max_count end
+		self.rows[r][idx] = nv
+	end
 end
 
 ---@param self CMS
 ---@param key number
 ---@return number count — estimated count
 function CMS:estimate(key)
-    local min_val = math.huge
-    
-    for r = 1, self.depth do
-        local counter_index = self:hash(r, key)
-        local byte_index, bit_offset = self:get_bit_position(counter_index)
-        local byte = self.rows[r][byte_index] or 0
-        
-        local val
-        if self.counter_bits == 8 then
-            val = byte
-        else
-            -- Extract bits
-            local mask = bit.lshift(1, self.counter_bits) - 1
-            val = rshift(byte, bit_offset)
-            val = band(val, mask)
-        end
-        
-        if val < min_val then
-            min_val = val
-        end
-    end
-    
-    return min_val
+	local k = math.floor(key)
+	local best = math.huge
+	for r = 1, self.depth do
+		local h = hash_for_row(k, r)
+		local idx = band(h, MASK) + 1
+		local v = self.rows[r][idx] or 0
+		if v < best then
+			best = v 
+		end
+	end
+	if best == math.huge then 
+		return 0
+	end
+	return best
 end
 
 -- Set value directly (for binary flags)

@@ -62,7 +62,7 @@ function Relation_Map:increment_results(word, target, dist)
     local relation_key = self:combine_keys(word_key, target_key)
     
     -- Set the flag in CMS
-    self.cms:set_flag(relation_key)
+    self.cms:increment(relation_key)
 end
 
 --- Combine two keys into a single CMS key
