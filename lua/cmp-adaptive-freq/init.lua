@@ -159,7 +159,10 @@ M.get_keyword_pattern = function()
 end
 --- Source completion function
 function M:complete(params, callback)
-	local context = params.context.cursor_before_line:gmatch("%S+")
+	local context = {}
+	for c in params.context.cursor_before_line:gmatch("%S+") do
+		context[#context+1] = c
+	end
 	if context == {} then
 		return callback({ items = {} })
 	end
