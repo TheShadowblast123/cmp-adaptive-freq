@@ -52,13 +52,6 @@ function Word_ID_Map:has_word(word)
 	return self.word_to_id[word] ~= nil
 end
 
----@param self Word_ID_Map
----@param id number
----@return boolean has
-function Word_ID_Map:has_id(id)
-	return self.id_to_word[id] ~= nil
-end
-
 -- @param self Word_ID_Map
 -- @param id number
 -- @return string|nil word # the word, or nil if `id` is unassigned
