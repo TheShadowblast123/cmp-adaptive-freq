@@ -73,17 +73,9 @@ local function scan_buffer(buf)
 				-- Traverse backwards from the most recent word to find where to start context
 				local start_index = #window - 1
 				for i = #window - 1, 1, -1 do
-					local has_punctuation = false
 					local word = window[i]
-					
-					-- Check if word contains any punctuation
-					for _, punct in ipairs(break_punctuation) do
-						if string.find(str, "%%p") then  -- plain text search
-							has_punctuation = true
-							break
-						end
-					end
-					
+					local has_punctuation = string.find(word, "%%p")
+
 					if has_punctuation then
 						for x = 1, i, 1 do
 							table.remove(window, 1)
