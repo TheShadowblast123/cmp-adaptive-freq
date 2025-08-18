@@ -28,7 +28,7 @@ local pairing_map
 ---@param word string
 ---@return string
 local function normalize_word(word)
-	return word:gsub("[%p%s]", ""):lower()
+	return word:gsub("[%s]", "")
 end
 ---@param path string
 ---@return string
@@ -160,7 +160,7 @@ end
 --- Source completion function
 function M:complete(params, callback)
 	local input = params.context.cursor_before_line:match("%S+$") or ""
-	print(input)
+
 	if input == "" then
 		return callback({ items = {} })
 	end
