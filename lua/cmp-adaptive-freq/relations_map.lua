@@ -57,6 +57,9 @@ end
 ---@param dist number
 function Relation_Map:increment_results(word, target, dist)
     -- We're ignoring distance since we're using binary flags
+	if math.random() < 0.5 then
+		return
+	end
     local word_key = self:get_key(word)
     local target_key = self:get_key(target)
     local relation_key = self:combine_keys(word_key, target_key)

@@ -56,7 +56,9 @@ local function scan_buffer(buf)
 			local normalized = normalize_word(word)
 			if normalized ~= "" and #normalized > 1 then
 				local word_id = word_id_map:get_id(normalized)
-				unigram_cms:increment(word_id)
+				if math.random() < 0.9 then
+					unigram_cms:increment(word_id)
+				end
 
 				-- Add to sliding window
 				table.insert(window, word_id)
@@ -67,7 +69,7 @@ local function scan_buffer(buf)
 				-- Process bigrams and relations
 				if #window > 1 then
 					-- Bigram: current word with previous word
-					pairing_map:increment_results(window[#window - 1], word_id)
+						pairing_map:increment_results(window[#window - 1], word_id)
 
 					-- Relations: current word with all words in window
 				-- Traverse backwards from the most recent word to find where to start context
@@ -87,11 +89,11 @@ local function scan_buffer(buf)
 
 				-- Process context from start_index to the word before current
 				for i = 1, #window - 1 do
-					relation_map:increment_results(
-						word_id,
-						window[i],
-						#window - i  -- distance weight
-					)
+						relation_map:increment_results(
+							word_id,
+							window[i],
+							#window - i  -- distance weight
+						)
 				end
 				end
 			end
