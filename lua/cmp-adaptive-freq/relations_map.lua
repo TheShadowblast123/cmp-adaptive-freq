@@ -85,7 +85,7 @@ function Relation_Map:get_results(id)
     for target_key, target_id in pairs(self.reverse_map) do
         if target_key ~= word_key then  -- Skip self-relations
             local relation_key = self:combine_keys(word_key, target_key)
-            if self.cms:check_flag(relation_key) then
+            if (self.cms:estimate(relation_key) or 0) > 0 then
                 results[target_id] = true
             end
         end
@@ -104,7 +104,7 @@ function Relation_Map:get_related_words(id)
     for target_key, target_id in pairs(self.reverse_map) do
         if target_key ~= word_key then
             local relation_key = self:combine_keys(word_key, target_key)
-            if self.cms:check_flag(relation_key) then
+            if (self.cms:estimate(relation_key) or 0) > 0 then
                 table.insert(results, target_id)
             end
         end
@@ -121,7 +121,7 @@ function Relation_Map:relation_exists(id1, id2)
     local key1 = self:get_key(id1)
     local key2 = self:get_key(id2)
     local relation_key = self:combine_keys(key1, key2)
-    return self.cms:check_flag(relation_key)
+    return (self.cms:estimate(relation_key) or 0) > 0
 end
 
 

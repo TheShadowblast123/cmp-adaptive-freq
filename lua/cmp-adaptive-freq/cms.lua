@@ -121,35 +121,4 @@ function CMS:estimate(key)
 	return best
 end
 
--- Set value directly (for binary flags)
----@param self CMS
----@param key number
-function CMS:set_flag(key)
-    for r = 1, self.depth do
-        local counter_index = self:hash(r, key)
-        local byte_index, bit_offset = self:get_bit_position(counter_index)
-        local byte = self.rows[r][byte_index] or 0
-        
-        -- Set the bit
-        self.rows[r][byte_index] = bor(byte, lshift(1, bit_offset))
-    end
-end
-
--- Check if flag is set (for binary relations)
----@param self CMS
----@param key number
----@return boolean
-function CMS:check_flag(key)
-    for r = 1, self.depth do
-        local counter_index = self:hash(r, key)
-        local byte_index, bit_offset = self:get_bit_position(counter_index)
-        local byte = self.rows[r][byte_index] or 0
-        
-        -- Check if bit is set
-        if band(rshift(byte, bit_offset), 1) == 0 then
-            return false
-        end
-    end
-    return true
-end
 return CMS

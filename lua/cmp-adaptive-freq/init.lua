@@ -159,21 +159,30 @@ M.get_keyword_pattern = function()
 end
 --- Source completion function
 function M:complete(params, callback)
-	local input = params.context.cursor_before_line:match("%S+$") or ""
-	print(input)
-	if input == "" then
+	local context = params.context.cursor_before_line:gmatch("%S+")
+	if context == {}
 		return callback({ items = {} })
 	end
-
-	-- Normalize input
-	local normalized_input = normalize_word(input)
-	if normalized_input == "" then
-		print("No good input")
-		return callback({ items = {} })
+	local input = {}
+	for i = 0, 9, 1 do
+		idx = #context - i
+		if idx < 1 then
+			break
+		end
+		table.insert(input, context[idx])
 	end
 
 	-- Get candidates
 	local candidates = {}
+	for _, word in ipairs(input) do
+		if word_id_map.has_word(word) then
+			local id = word_id_map.get_id(word)
+		else
+			goto continue
+		end
+		::continue::
+		
+	end
 	for word, id in pairs(word_id_map.word_to_id) do
 		if word:find(normalized_input, 1, true) == 1 then
 			table.insert(candidates, {
@@ -186,7 +195,7 @@ function M:complete(params, callback)
 	
 	if #candidates == 0 then
 		print("No candidates")
-		return callback({ items = {} })
+		return callback({ items = {}, isIncomplete = false })
 	end
 
 	-- Build context
