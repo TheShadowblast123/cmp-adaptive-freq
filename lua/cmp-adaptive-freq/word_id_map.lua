@@ -6,7 +6,7 @@ local Word_ID_Map = {}
 Word_ID_Map.__index = Word_ID_Map
 
 -- @return Word_ID_Map
-function Word_ID_Map:new()
+function Word_ID_Map.new()
 	---@type Word_ID_Map
 	local self = setmetatable({}, Word_ID_Map)
 	self.word_to_id = {}
@@ -50,6 +50,13 @@ end
 ---@return boolean has
 function Word_ID_Map:has_word(word)
 	return self.word_to_id[word] ~= nil
+end
+
+---@param self Word_ID_Map
+---@param id number
+---@return boolean has
+function Word_ID_Map:has_id(id)
+	return self.id_to_word[id] ~= nil
 end
 
 -- @param self Word_ID_Map
