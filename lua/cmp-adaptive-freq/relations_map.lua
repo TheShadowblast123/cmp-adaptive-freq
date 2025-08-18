@@ -112,7 +112,12 @@ function Relation_Map:get_related_words(id)
     
     return results
 end
-
+function Relation_Map:get_score(id1, id2)
+    local k1 = self:get_key(id1)
+    local k2 = self:get_key(id2)
+    local relation_key = self:combine_keys(k1, k2)
+    return self.cms:estimate(relation_key) or 0
+end
 --- Check if a relation exists between two words
 ---@param id1 number
 ---@param id2 number

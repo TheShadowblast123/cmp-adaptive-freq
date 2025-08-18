@@ -70,13 +70,37 @@ local function scan_buffer(buf)
 					pairing_map:increment_results(window[#window - 1], word_id)
 
 					-- Relations: current word with all words in window
-					for i = 1, #window - 1 do
-						relation_map:increment_results(
-							word_id,
-							window[i],
-							#window - i -- distance (closer words get higher weight)
-						)
+				-- Traverse backwards from the most recent word to find where to start context
+				local start_index = #window - 1
+				for i = #window - 1, 1, -1 do
+					local has_punctuation = false
+					local word = window[i]
+					
+					-- Check if word contains any punctuation
+					for _, punct in ipairs(break_punctuation) do
+						if string.find(str, "%%p") then  -- plain text search
+							has_punctuation = true
+							break
+						end
 					end
+					
+					if has_punctuation then
+						for x = 1, i, 1 do
+							table.remove(window, 1)
+						end
+						start_index = i + 1  -- Context starts after the punctuated word
+						break
+					end
+				end
+
+				-- Process context from start_index to the word before current
+				for i = 1, #window - 1 do
+					relation_map:increment_results(
+						word_id,
+						window[i],
+						#window - i  -- distance weight
+					)
+				end
 				end
 			end
 		end
@@ -137,21 +161,23 @@ end
 ---@param id number
 ---@return number score
 local function calculate_score(id, context)
-	local score = unigram_cms:estimate(id)
-
+	local score = 0
+	local uni_score = unigram_cms:estimate(id)
+	local bi_score = 0
+	local rel_score = 0
+	
 	-- Bigram boost (last word)
 	if context.prev_word_id then
 		local bigram_score = pairing_map:get_score(context.prev_word_id, id)
-		score = score * (1 + bigram_score * 0.3) -- Up to 30% boost
+		
 	end
 
 	-- Relation boost (context words)
 	for _, ctx_id in ipairs(context.recent_word_ids) do
-		if relation_map:relation_exists(id, ctx_id) then
-			score = score * 1.15 -- 15% boost per relation
-		end
-	end
+		rel_score = relation_map:get_score(id, ctx_id)
 
+	end
+	score = (math.log(uni_score + 1) * 0.55) + (math.log(bi_score + 1) * 0.35) + (math.log(rel_score + 1) * 0.1)
 	return score
 end
 M.get_keyword_pattern = function()
