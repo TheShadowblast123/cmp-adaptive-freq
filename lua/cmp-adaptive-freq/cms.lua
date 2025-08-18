@@ -46,7 +46,7 @@ function CMS.new(depth, width, counter_bits, serialize)
 	local self = setmetatable({}, CMS)
 	self.depth = FIXED_DEPTH
 	self.width = FIXED_WIDTH
-	self.max_count = opts.max_count or DEFAULT_MAX
+	self.max_count = DEFAULT_MAX
 
 	self.serialize = function ()
 		return {
