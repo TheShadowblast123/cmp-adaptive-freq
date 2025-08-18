@@ -9,7 +9,7 @@ local Pairing_Map = {}
 Pairing_Map.__index = Pairing_Map
 
 ---@return Pairing_Map
-function Pairing_Map.new()
+function Pairing_Map:new()
 	---@type Pairing_Map
     local self = setmetatable({}, Pairing_Map)
     

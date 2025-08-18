@@ -17,7 +17,7 @@ local serialize = function(s)
     }
 	end
 ---@return Relation_Map
-function Relation_Map.new()
+function Relation_Map:new()
     ---@type Relation_Map
     local self = setmetatable({}, Relation_Map)
     

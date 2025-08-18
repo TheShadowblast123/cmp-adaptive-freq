@@ -6,7 +6,7 @@ local Word_ID_Map = {}
 Word_ID_Map.__index = Word_ID_Map
 
 -- @return Word_ID_Map
-function Word_ID_Map.new()
+function Word_ID_Map:new()
 	---@type Word_ID_Map
 	local self = setmetatable({}, Word_ID_Map)
 	self.word_to_id = {}
