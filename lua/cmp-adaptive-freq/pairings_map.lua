@@ -46,6 +46,9 @@ end
 ---@param word number
 ---@param target number
 function Pairing_Map:increment_results(word, target)
+	if math.random() < 0.75 then
+		return
+	end
     local word_key = self:get_key(word)
     local target_key = self:get_key(target)
     local bigram_key = self:combine_keys(word_key, target_key)
