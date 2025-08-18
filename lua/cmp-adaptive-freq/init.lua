@@ -160,7 +160,7 @@ end
 --- Source completion function
 function M:complete(params, callback)
 	local context = params.context.cursor_before_line:gmatch("%S+")
-	if context == {}
+	if context == {} then
 		return callback({ items = {} })
 	end
 	local input = {}
