@@ -86,10 +86,6 @@ end
 
 --- Load data for current directory
 local function load_data()
-	word_id_map = WordIDMap:new()
-	unigram_cms = CMS.new(4, 256, 8 )
-	relation_map = RelationMap:new()
-	pairing_map = PairingMap:new()
 	local save_path = get_data_path_for_dir()
 	if vim.fn.filereadable(save_path) == 0 then
 		return false
@@ -101,9 +97,16 @@ local function load_data()
 		return false
 	end
 
+	word_id_map = WordIDMap.new()
 	word_id_map:deserialize(data.word_id_map)
+
+	unigram_cms = CMS.new(4, 256, 8 )
 	unigram_cms:deserialize(data.unigram_cms)
+
+	relation_map = RelationMap.new()
 	relation_map:deserialize(data.relation_map)
+
+	pairing_map = PairingMap.new()
 	pairing_map:deserialize(data.pairing_map)
 
 	return true
@@ -156,17 +159,9 @@ M.get_keyword_pattern = function()
 end
 --- Source completion function
 function M:complete(params, callback)
-<<<<<<< HEAD
-	local context = {}
-	for c in params.context.cursor_before_line:gmatch("%S+") do
-		context[#context+1] = c
-	end
-	if context == {} then
-=======
 	local input = params.context.cursor_before_line:match("%S+$") or ""
 	print(input)
 	if input == "" then
->>>>>>> parent of aa4b858 (the test was apparently successful)
 		return callback({ items = {} })
 	end
 
