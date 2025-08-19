@@ -10,8 +10,8 @@ local band, bor, lshift, rshift, bnot = bit.band, bit.bor, bit.lshift, bit.rshif
 local CMS = {}
 CMS.__index = CMS
 
-local FIXED_WIDTH = 32768
-local FIXED_DEPTH = 8
+local FIXED_WIDTH = 8192
+local FIXED_DEPTH = 6
 local MASK = FIXED_WIDTH - 1     -- width is power-of-two -> mask for modulo
 local DEFAULT_MAX = 2^31 - 1     -- saturate counters here by default
 
