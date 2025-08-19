@@ -6,7 +6,9 @@ local CMS = require("cmp-adaptive-freq.cms")
 local WordIDMap = require("cmp-adaptive-freq.word_id_map")
 local RelationMap = require("cmp-adaptive-freq.relations_map")
 local PairingMap = require("cmp-adaptive-freq.pairings_map")
-local autosave = require("cmp-adaptive-freq.autosave")
+local autosave = require("cmp-adaptive-freq.save").autosave
+local global_save = require("cmp-adaptive-freq.save").global
+local project_save = require("cmp-adaptive-freq.save").project
 
 local M = {}
 local default_config = {
