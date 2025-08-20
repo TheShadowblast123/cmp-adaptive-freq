@@ -119,7 +119,6 @@ end
 ---@param delta number Increment amount (default: 1)
 function CMS:increment(key, delta)
     delta = delta or 1
-    local max_count = self.max_count
     
     for i = 1, self.depth do
         local h = hash(key, i)
@@ -127,8 +126,8 @@ function CMS:increment(key, delta)
         local current = self.rows[i][idx]
         
         -- Handle saturation
-        if current > max_count - delta then
-            self.rows[i][idx] = max_count
+        if current > self.max_count - delta then
+            self.rows[i][idx] = self.max_count
         else
             self.rows[i][idx] = current + delta
         end
