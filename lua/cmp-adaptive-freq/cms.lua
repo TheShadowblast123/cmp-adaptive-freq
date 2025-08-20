@@ -10,15 +10,6 @@ local band, bor, lshift, rshift, bnot = bit.band, bit.bor, bit.lshift, bit.rshif
 local CMS = {}
 CMS.__index = CMS
 
-local FIXED_WIDTH = 512
-local FIXED_DEPTH = 8
-local MASK = FIXED_WIDTH - 1     -- width is power-of-two -> mask for modulo
-local DEFAULT_MAX = 2^31 - 1     -- saturate counters here by default
-local MASKS = {
-    [16] = 0xFFFF,
-    [32] = 0xFFFFFFFF
-}
-
 ---@param key number
 ---@param seed number
 ---@return number
@@ -28,6 +19,28 @@ local function hash(key, seed)
     key = band(lshift(key, 15) + rshift(key, 17), 0xFFFFFFFF)
     key = band(key * 0x1b873593, 0xFFFFFFFF)
     return key
+end
+
+local function pack_uint16(n)
+    return string.char(n % 256, math.floor(n / 256))
+end
+
+local function pack_uint32(n)
+    local b1 = n % 256
+    local b2 = math.floor(n / 256) % 256
+    local b3 = math.floor(n / 65536) % 256
+    local b4 = math.floor(n / 16777216) % 256
+    return string.char(b1, b2, b3, b4)
+end
+
+local function unpack_uint16(s, pos)
+    local b1, b2 = string.byte(s, pos, pos + 1)
+    return b1 + b2 * 256, pos + 2
+end
+
+local function unpack_uint32(s, pos)
+    local b1, b2, b3, b4 = string.byte(s, pos, pos + 3)
+    return b1 + b2 * 256 + b3 * 65536 + b4 * 16777216, pos + 4
 end
 
 ---@param width number   — default 8192
@@ -56,22 +69,26 @@ function CMS.new(width, depth, counter_bits)
 	return self
 end
 
+
+---@return string
 function CMS:serialize()
     local parts = {}
     
-    -- Header: width (4 bytes), depth (1 byte), counter_bits (1 byte)
-    table.insert(parts, string.pack("I4I1I1", self.width, self.depth, self.counter_bits))
+    -- Header: width (2 bytes), depth (1 byte), counter_bits (1 byte)
+    table.insert(parts, pack_uint16(self.width))
+    table.insert(parts, string.char(self.depth))
+    table.insert(parts, string.char(self.counter_bits))
     
     -- Counter data
     for i = 1, self.depth do
         local row = self.rows[i]
         if self.counter_bits == 16 then
             for j = 1, self.width do
-                table.insert(parts, string.pack("I2", row[j]))
+                table.insert(parts, pack_uint16(row[j]))
             end
         else
             for j = 1, self.width do
-                table.insert(parts, string.pack("I4", row[j]))
+                table.insert(parts, pack_uint32(row[j]))
             end
         end
     end
@@ -86,7 +103,9 @@ function CMS.deserialize(data)
     
     -- Read header
     local width, depth, counter_bits
-    width, depth, counter_bits, pos = string.unpack("I4I1I1", data, pos)
+    width, pos = unpack_uint16(data, pos)
+    depth = string.byte(data, pos); pos = pos + 1
+    counter_bits = string.byte(data, pos); pos = pos + 1
     
     if not (counter_bits == 16 or counter_bits == 32) then
         return nil
@@ -95,10 +114,13 @@ function CMS.deserialize(data)
     local self = CMS.new(width, depth, counter_bits)
     
     -- Read counter data
-    local format = counter_bits == 16 and "I2" or "I4"
     for i = 1, depth do
         for j = 1, width do
-            self.rows[i][j], pos = string.unpack(format, data, pos)
+            if counter_bits == 16 then
+                self.rows[i][j], pos = unpack_uint16(data, pos)
+            else
+                self.rows[i][j], pos = unpack_uint32(data, pos)
+            end
         end
     end
     
