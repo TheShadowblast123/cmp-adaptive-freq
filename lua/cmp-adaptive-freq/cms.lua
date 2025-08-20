@@ -40,7 +40,7 @@ function CMS.new(width, depth, counter_bits)
 	self.width = width or 8192
 	self.depth = depth or 4
 	self.counter_bits = counter_bits or 32
-	self.max_count = MASKS[counter_bits]
+	self.max_count =  (2 ^ self.counter_bits) - 1
 	print(MASKS, MASKS[16], MASKS[32], self.max_count)
 	self.mask = width - 1
 	---@type table<number, table<number, number>>
