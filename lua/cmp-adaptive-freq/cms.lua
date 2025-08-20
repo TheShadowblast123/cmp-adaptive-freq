@@ -45,10 +45,11 @@ function CMS.new(width, depth, counter_bits)
 	self.rows = {}
 
 	for i = 1, self.depth do
+		self.rows[i] = {} 
 		for j = 1, self.width do 
-			self.rows[i] = {} 
+			self.rows[i][j] = 0
 		end
-		self.rows[i][j] = 0
+		
 	end
 	return self
 end
