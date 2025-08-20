@@ -21,8 +21,7 @@ function Relation_Map:new()
     ---@type Relation_Map
     local self = setmetatable({}, Relation_Map)
     
-    -- Initialize CMS with 1-bit flags
-    self.cms = CMS.new(3, 512, 1)  -- depth=3, width=512, 1-bit flags
+    self.cms = CMS.new(1024, 4) -- currently everything is session based but we leave the bits alone
     
     -- ID mapping tables
     self.id_map = {}       -- word_id -> cms_key

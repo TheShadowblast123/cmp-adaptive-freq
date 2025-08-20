@@ -13,8 +13,7 @@ function Pairing_Map:new()
 	---@type Pairing_Map
     local self = setmetatable({}, Pairing_Map)
     
-    -- Initialize CMS with 2-bit counters (4 levels: 0-3)
-    self.cms = CMS.new(5, 512, 2)  -- depth=5, width=512, 2-bit counters
+    self.cms = CMS.new(512, 4)  -- currently everything is session based but we leave the bits alone
     
     -- ID mapping tables
     self.id_map = {}       -- word_id -> cms_key

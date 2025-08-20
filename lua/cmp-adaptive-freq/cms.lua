@@ -14,64 +14,93 @@ local FIXED_WIDTH = 512
 local FIXED_DEPTH = 8
 local MASK = FIXED_WIDTH - 1     -- width is power-of-two -> mask for modulo
 local DEFAULT_MAX = 2^31 - 1     -- saturate counters here by default
-
-local function splitmix32(x)
-  -- keep x in 32-bit unsigned space
-  x = (x + 0x9E3779B1) % 2^32
-  x = band(x, 0xffffffff)
-  x = bit.bxor(x, rshift(x, 15))
-  x = (x * 0x85ebca6b) % 2^32
-  x = bit.bxor(x, rshift(x, 13))
-  x = (x * 0xc2b2ae35) % 2^32
-  x = bit.bxor(x, rshift(x, 16))
-  return band(x, 0xffffffff)
+local MASKS = {
+    [16] = 0xFFFF,
+    [32] = 0xFFFFFFFF
+}
+---@param key number
+---@param seed number
+---@return number
+local function hash(key, seed)
+    key = band(key + seed, 0xFFFFFFFF)
+    key = band(key * 0xcc9e2d51, 0xFFFFFFFF)
+    key = band(lshift(key, 15) + rshift(key, 17), 0xFFFFFFFF)
+    key = band(key * 0x1b873593, 0xFFFFFFFF)
+    return key
 end
 
--- combine key with row index to produce per-row hash
-local function hash_for_row(key, row)
-  -- key assumed to be a non-negative integer (word id). row is 1..depth.
-  -- mixing: incorporate row to get independent hashes per row
-  -- small tweak: add row*0x9e3779b1 to diversify seeds
-  local seed = (row * 0x9E3779B1) % 2^32
-  local v = (key + seed) % 2^32
-  return splitmix32(v)
-end
-
----@param depth number   — number of hash functions (rows)
----@param width number   — counters per row
----@param counter_bits number — bits per counter (1, 2, or 8)
+---@param width number   — default 8192
+---@param depth number   — default 4
+---@param counter_bits number — bits per counter (16 or [32] default)
 ---@return CMS
-function CMS.new(depth, width, counter_bits, serialize)
+function CMS.new(width, depth, counter_bits)
 	---@type CMS
 	local self = setmetatable({}, CMS)
-	self.depth = FIXED_DEPTH
-	self.width = FIXED_WIDTH
-	self.max_count = DEFAULT_MAX
-
-	self.serialize = function ()
-		return {
-			self.depth,
-			self.width,
-			32,
-			self.rows
-		}
-	end
+	self.width = width or 8192
+	self.depth = depth or 4
+	self.counter_bits = counter_bits or 32
+	self.max_count = MASKS[counter_bits]
 
 	---@type table<number, table<number, number>>
 	self.rows = {}
 
-	for r = 1, self.depth do
-		local row = {}
-		for i = 1, self.width do 
-			row[i] = 0 
+	for i = 1, self.depth do
+		for j = 1, self.width do 
+			self.rows[i] = {} 
 		end
-		self.rows[r] = row
+		self.rows[i][j] = 0
 	end
 	return self
 end
 
+function CMS:serialize()
+    local parts = {}
+    
+    -- Header: width (4 bytes), depth (1 byte), counter_bits (1 byte)
+    table.insert(parts, string.pack("I4I1I1", self.width, self.depth, self.counter_bits))
+    
+    -- Counter data
+    for i = 1, self.depth do
+        local row = self.rows[i]
+        if self.counter_bits == 16 then
+            for j = 1, self.width do
+                table.insert(parts, string.pack("I2", row[j]))
+            end
+        else
+            for j = 1, self.width do
+                table.insert(parts, string.pack("I4", row[j]))
+            end
+        end
+    end
+    
+    return table.concat(parts)
+end
 
-
+---@param data string Serialized data
+---@return CMS|nil Deserialized CMS or nil on error
+function CMS.deserialize(data)
+    local pos = 1
+    
+    -- Read header
+    local width, depth, counter_bits
+    width, depth, counter_bits, pos = string.unpack("I4I1I1", data, pos)
+    
+    if not (counter_bits == 16 or counter_bits == 32) then
+        return nil
+    end
+    
+    local self = CMS.new(width, depth, counter_bits)
+    
+    -- Read counter data
+    local format = counter_bits == 16 and "I2" or "I4"
+    for i = 1, depth do
+        for j = 1, width do
+            self.rows[i][j], pos = string.unpack(format, data, pos)
+        end
+    end
+    
+    return self
+end
 
 -- @param self CMS
 -- @param row number      — which hash row (1..depth)
@@ -85,40 +114,43 @@ function CMS:hash(row, key)
 	return idx
 end
 
----@param self CMS
----@param key number
+---@param key number Key to increment
+---@param delta number Increment amount (default: 1)
 function CMS:increment(key, delta)
-	delta = delta or 1
-	-- defensive: ensure key is integer-like
-	local k = math.floor(key)
-	for r = 1, self.depth do
-		local h = hash_for_row(k, r)
-		local idx = band(h, MASK) + 1         -- 1-based index
-		local cur = self.rows[r][idx] or 0
-		local nv = cur + delta
-		if nv > self.max_count then nv = self.max_count end
-		self.rows[r][idx] = nv
-	end
+    delta = delta or 1
+    local max_count = self.max_count
+    
+    for i = 1, self.depth do
+        local h = hash(key, i)
+        local idx = band(h, self.mask) + 1  -- 1-based indexing
+        local current = self.rows[i][idx]
+        
+        -- Handle saturation
+        if current > max_count - delta then
+            self.rows[i][idx] = max_count
+        else
+            self.rows[i][idx] = current + delta
+        end
+    end
 end
 
----@param self CMS
----@param key number
----@return number count — estimated count
+
+---@param key number Key to estimate
+---@return number Estimated count
 function CMS:estimate(key)
-	local k = math.floor(key)
-	local best = math.huge
-	for r = 1, self.depth do
-		local h = hash_for_row(k, r)
-		local idx = band(h, MASK) + 1
-		local v = self.rows[r][idx] or 0
-		if v < best then
-			best = v 
-		end
-	end
-	if best == math.huge then 
-		return 0
-	end
-	return best
+    local min = math.huge
+    
+    for i = 1, self.depth do
+        local h = hash(key, i)
+        local idx = band(h, self.mask) + 1  -- 1-based indexing
+        local count = self.rows[i][idx]
+        
+        if count < min then
+            min = count
+        end
+    end
+    
+    return min == math.huge and 0 or min
 end
 
 return CMS
