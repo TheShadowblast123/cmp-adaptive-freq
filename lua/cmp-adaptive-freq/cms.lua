@@ -18,6 +18,7 @@ local MASKS = {
     [16] = 0xFFFF,
     [32] = 0xFFFFFFFF
 }
+print(MASKS, MASKS[16], MASKS[32])
 ---@param key number
 ---@param seed number
 ---@return number
