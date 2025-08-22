@@ -288,7 +288,7 @@ function M:complete(params, callback)
 	-- Get candidates
 	local candidates = {}
 	for word, id in pairs(global.word_id_map.word_to_id) do
-		if word:find(word, 1, true) == 1 then
+		if word:find(input, 1, true) == 1 then
 			table.insert(candidates, {
 				word = word,
 				id = id,
