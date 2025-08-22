@@ -2,13 +2,14 @@ local cmp = require("cmp")
 local uv = vim.loop
 
 -- Modules
-local tier= require("cmp-adaptive-freq.tier")
+local tier = require("cmp-adaptive-freq.tier")
 local global = tier[3]
 local project = tier[2]
 local session = tier[1]
 local last_line = ""
 local last_line_word_count = 0
 local last_line_number = -1
+local last_diff = ""
 local M = {}
 local default_config = {
 	max_items = 5,
@@ -22,11 +23,6 @@ local config = {}
 
 -- Global instances
 
----@param word string
----@return string
-local function normalize_word(word)
-	return word:sub("[%s]", "")
-end
 ---@param buf number
 local function scan_buffer(buf)
 	if not vim.api.nvim_buf_is_loaded(buf) then
@@ -39,56 +35,51 @@ local function scan_buffer(buf)
 	local window_size = 10
 	for _, line in ipairs(lines) do
 		for word in line:gmatch("%S+") do
-			local normalized= normalize_word(word)
-			if normalized ~= "" and #normalized > 1 then
-				local word_id = global.word_id_map:get_id(normalized)
-				if math.random() < 0.9 then
-					project.frequency:increment(word_id, 1)
-					if math.random() < 0.8 then
-						global.frequency:increment(word_id, 1)
-					end
+			local word_id = global.word_id_map:get_id(word)
+			if math.random() < 0.9 then
+				project.frequency:increment(word_id, 1)
+				if math.random() < 0.8 then
+					global.frequency:increment(word_id, 1)
 				end
+			end
 
 				-- Add to sliding window
-				table.insert(window, word_id)
-				if #window > window_size then
-					table.remove(window, 1)
-				end
+			table.insert(window, word_id)
+			if #window > window_size then
+				table.remove(window, 1)
+			end
 
 				-- Process bigrams and relations
-				if #window > 1 then
-					-- Bigram: current word with previous word
-						project.pairs:increment_results(window[#window - 1], word_id)
-						global.pairs:increment_results(window[#window - 1], word_id)
+			if #window > 1 then
+				-- Bigram: current word with previous word
+					project.pairs:increment_results(window[#window - 1], word_id)
+					global.pairs:increment_results(window[#window - 1], word_id)
 					-- Relations: current word with all words in window
 				-- Traverse backwards from the most recent word to find where to start context
-					local start_index = #window - 1
-					for i = #window - 1, 1, -1 do
-						local word = window[i]
-						local has_punctuation = string.find(word, "%%p")
+				for i = #window - 1, 1, -1 do
+					local word = window[i]
+					local has_punctuation = string.find(word, "%%p")
 
-						if has_punctuation then
-							for x = 1, i, 1 do
-								table.remove(window, 1)
-							end
-							start_index = i + 1  -- Context starts after the punctuated word
-							break
+					if has_punctuation then
+						for x = 1, i, 1 do
+							table.remove(window, 1)
 						end
+						break
 					end
+				end
 
 				-- Process context from start_index to the word before current
-					for i = 1, start_index - 1 do
-						global.relations_map:increment_results(
-							word_id,
-							window[i],
-							#window - i  -- distance weight
-						)
-						project.relations_map:increment_results(
-							word_id,
-							window[i],
-							#window - i  -- distance weight
-						)
-					end
+				for i = 1, #window - 1 do
+					global.relations_map:increment_results(
+						word_id,
+						window[i],
+						#window - i  -- distance weight
+					)
+					project.relations_map:increment_results(
+						word_id,
+						window[i],
+						#window - i  -- distance weight
+					)
 				end
 			end
 		end
@@ -98,28 +89,41 @@ local function scan_buffer(buf)
 end
 ---@param buf number
 local function scan_line(buf)
+	local p = "scan failed"
 	if not vim.api.nvim_buf_is_loaded(buf) then
 		print("No buffer")
 		return
 	end
 	---@type string
 	local line = vim.api.nvim_get_current_line()
-	
+	local line_number = vim.fn.line('.')
 	if line == last_line or last_line_number ~= vim.fn.line('.') then
 		last_line_number = vim.fn.line('.')
 		last_line = line
+	
+		print(p)
 		return
 	end
-	local _, count = line:gsub("%s+","")
-	if count == last_line_word_count then
+	local quickdiff, count = line:gsub("%s+","")
+	if count == last_line_word_count or quickdiff == last_diff then
+		print(p)
 		return
 	end
-	if count < last_line_word_count then
+	last_diff = quickdiff
+	if count < last_line_word_count or #line < #last_line then
 		-- we don't decrement
 		last_line = line
 		last_line_word_count = count
+		print(p)
 		return
 	end
+	if #line == #last_line + 1 then
+		return
+	end
+	last_line = line
+	last_line_number = line_number
+	last_line_word_count = count
+
 	local idx = -1
 	for i = 1, last_line_word_count do
 		if line:sub(i, i) ~= last_line:sub(i, i) then
@@ -127,16 +131,17 @@ local function scan_line(buf)
 			break
 		end
 	end
-	local word = string.sub(line, idx):match("^%S+")
-
+	local context = {}
 	local window_size = 10
-	local normalized = normalize_word(word)
-	if normalized == "" or #normalize_word(word) < 1 then
-		last_line = line
-		last_line_word_count = count
-		return
+	local cut = line:sub(1, idx)
+	for w in cut:gmatch("%S+") do
+		if #context > window_size then
+			table.remove(context, 1)
+		end
+		table.insert(context, w)
 	end
-	local word_id = global.word_id_map:get_id(normalized)
+	local word = context[#context]
+	local word_id = global.word_id_map:get_id(word)
 	session.frequency:increment(word_id, 1)
 	if math.random() < 0.9 then
 		project.frequency:increment(word_id, 1)
@@ -172,21 +177,18 @@ local function scan_line(buf)
 			global.pairs:increment_results(words[#words - 1], word_id)
 		end
 	end
-	local start_index = #words- 1
-	for i = #words- 1, 1, -1 do
-		local item = words[i]
-		local has_punctuation = string.find(item, "%%p")
+	for i = #words - 1, 1, -1 do
+		local word =words[i]
+		local has_punctuation = string.find(word, "%%p")
 
 		if has_punctuation then
-			start_index = i-- Context starts after the punctuated word
+			for x = 1, i, 1 do
+				table.remove(words, 1)
+			end
 			break
 		end
 	end
-	if start_index == window_size -1 then 
-		return
-	end
-				-- Process context from start_index to the word before current
-	for i = start_index, window_size - 1 do
+	for i = 1, #words- 1 do
 		session.relations_map:increment_results(
 			word_id,
 			words[i],
@@ -222,20 +224,16 @@ end
 
 ---@param ft string
 ---@return boolean
-local function is_supported_ft(ft)
-	for _, type in ipairs(config.type) do
-		if ft == type then
-			return true
-		end
-	end
-	return false
+local function is_supported_ft()
+	local ft = vim.bo.filetype
+	return ft == "markdown" or ft == "org" or ft == "text" or ft == "plain" or ft == "latex" or ft == "asciidoc"
 end
 ---comment
 ---@param session_score integer
 ---@param project_score integer
 ---@param global_score integer
 ---@return number
-function formula (session_score, project_score, global_score)
+local function formula (session_score, project_score, global_score)
 	return (session_score * 2) + (project_score * 0.6) + (global_score * 0.2)
 end
 ---@param id number
@@ -278,7 +276,7 @@ M.get_keyword_pattern = function()
 end
 --- Source completion function
 function M:complete(params, callback)
-	local line = param.context.cursor_before_line
+	local line = params.context.cursor_before_line
 	local input = line:match("%S+$") or ""
 
 	if input == "" then
@@ -286,16 +284,11 @@ function M:complete(params, callback)
 	end
 
 	-- Normalize input
-	local normalized_input = normalize_word(input)
-	if normalized_input == "" then
-		print("No good input")
-		return callback({ items = {} })
-	end
 
 	-- Get candidates
 	local candidates = {}
-	for word, id in pairs(global.word_id_map) do
-		if word:find(normalized_input, 1, true) == 1 then
+	for word, id in pairs(global.word_id_map.word_to_id) do
+		if word:find(word, 1, true) == 1 then
 			table.insert(candidates, {
 				word = word,
 				id = id,
@@ -305,7 +298,6 @@ function M:complete(params, callback)
 	end
 	
 	if #candidates == 0 then
-		print("No candidates")
 		return callback({ items = {} })
 	end
 
@@ -318,10 +310,11 @@ function M:complete(params, callback)
 		table.insert(context, global.word_id_map:get_id(l))
 	end
 	table.remove(context,#context)
-
-	-- Score candidates
-	for _, candidate in ipairs(candidates) do
-		candidate.score = calculate_score(candidate.id, context)
+	if #context > 0 then
+		-- Score candidates
+		for _, candidate in ipairs(candidates) do
+			candidate.score = calculate_score(candidate.id, context)
+		end
 	end
 
 	-- Sort by score
@@ -362,9 +355,18 @@ function M.setup(opts)
 	end,
 	{}
 	)
+	vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost" }, {
+		group = group,
+		callback = function(args)
+			if is_supported_ft(vim.bo[args.buf].filetype) then
 
+				global:load_data()
+				project:load_data()
+			end
+		end,
+	})
 	-- Scan on text changes
-	vim.api.nvim_create_autocmd("TextChanged", {
+	vim.api.nvim_create_autocmd("TextChangedI", {
 		group = group,
 		callback = function(args)
 			if is_supported_ft(vim.bo[args.buf].filetype) then
@@ -375,15 +377,18 @@ function M.setup(opts)
 	vim.api.nvim_create_autocmd("BufLeave", {
 		group = group,
 		callback = function(args)
-			if context and args.buf == context.buf then
-				context.buf = nil -- Reset context
+			if not is_supported_ft() then
+				return
 			end
 			global:save_data()
 			project:save_data()
 		end,
 	})
+
+		vim.fn.mkdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq", "p")
 	vim.schedule(function()
 		cmp.register_source("cmp-adaptive-freq", M.new())
+
 	end)
 
 	

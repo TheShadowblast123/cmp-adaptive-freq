@@ -9,37 +9,44 @@ local cms = require("cmp-adaptive-freq.cms")
 ---@field pairs Pairing_Map
 ---@field relations_map Relation_Map
 ---@field frequency CMS
----@field dir string
 ---@field update_count integer
 ---@field save_data function
 ---@field load_data function
 local tier_data = {}
 
+local function wrap_method(tbl, key, wrapper)
+    local original = tbl[key]
+    tbl[key] = function (self, ...)
+        return wrapper(self, original, ...)
+    end
+end
 ---@param pairs_params cms_params 
 ---@param relations_params cms_params
 ---@param frequency_params cms_params
----@param dir string
-function tier_data:new ( pairs_params, relations_params, frequency_params, threshold, dir)
+---@param threshold integer
+function tier_data:new ( pairs_params, relations_params, frequency_params, threshold )
     local obj = setmetatable({}, self)
     self.__index = self
     self.pairs = require("cmp-adaptive-freq.pairings_map"):new(pairs_params[1], pairs_params[2], pairs_params[3] )
     self.relations_map = require("cmp-adaptive-freq.relations_map"):new(relations_params[1], relations_params[2], relations_params[3])
     self.frequency = cms.new(frequency_params[1],frequency_params[2], frequency_params[3] )
-    self.dir = dir
     self.update_count = 0
     self.threshold = threshold
     self.save = true
-    self.relations_map.increment_results = function (self, ...)
-        obj:increment()
-        return getmetatable(self).__index.increment_results(self, ...)
+    local o_inc = self.relations_map.increment_results
+    self.relations_map.increment_results = function(inner_self, ...)
+        self:increment()
+        return o_inc(inner_self, ...)
     end
-    self.frequency.increment = function (self, ...)
-        obj:increment()
-        return getmetatable(self).__index.increment_results(self, ...)
+    local o_f_inc = self.frequency.increment
+    self.frequency.increment = function (inner_self, ...)
+        self:increment()
+        return o_f_inc(inner_self, ...)
     end
-     self.pairs.increment_results = function (self, ...)
-        obj:increment()
-        return getmetatable(self).__index.increment_results(self, ...)
+    local o_p_inc = self.pairs.increment_results
+     self.pairs.increment_results = function (inner_self, ...)
+        self:increment()
+        return o_p_inc(inner_self, ...)
     end
     return obj
 end
@@ -52,8 +59,23 @@ function tier_data:increment()
 
 end
 
-function tier_data:save_data ()
+
+---@class Project_data: Tiered_Data
+local project_data = tier_data:
+    new(
+        {4096, 4, 32}, 
+        {4096, 4, 32}, 
+        {2048, 8, 32}, 
+        2100
+    )
+    project_data.dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq"
+    project_data.file = "/"..vim.fn.sha256(vim.fn.getcwd()) .. ".mpack"
+function project_data:setdir()
+    self.file = vim.fn.sha256(vim.fn.getcwd()) .. ".mpack"
+end
+function project_data:save_data ()
     local dir = self.dir
+    local file = self.file
     local data = {
         unigram_cms = self.frequency:serialize(),
         relation_map = self.relations_map:serialize(),
@@ -62,11 +84,11 @@ function tier_data:save_data ()
 
     -- Serialize with vim.mpack
     local blob = vim.mpack.encode(data)
-    vim.fn.mkdir(self.dir, "p")
+    vim.fn.mkdir(dir, "p")
 
-    local f, err = io.open(dir, "wb")
+    local f, err = io.open(dir .. file, "wb")
     if not f then
-        vim.notify("Failed to open file for writing: " .. tostring(err), vim.log.levels.ERROR)
+        vim.notify("Failed to open file for writing: "..dir .. tostring(err), vim.log.levels.ERROR)
         return
     end
 
@@ -81,13 +103,14 @@ end
 
 
 ---@return boolean
-function tier_data:load_data ()
+function project_data:load_data ()
     local dir = self.dir
-	if vim.fn.filereadable(dir) == 0 then
-		vim.fn.writefile({}, dir)
+    local file = self.file
+	if vim.fn.filereadable(dir.. file) == 0 then
+		vim.fn.writefile({}, dir.. file)
 	end
 
-	local blob = table.concat(vim.fn.readfile(dir, "b"), "")
+	local blob = table.concat(vim.fn.readfile(dir .. file, "b"), "")
 	local ok, data = pcall(vim.mpack.decode, blob)
 	if not ok or type(data) ~= "table" then
 		return false
@@ -99,31 +122,20 @@ function tier_data:load_data ()
     self.update_count = 0
 	return true
 end
----@class Project_data: Tiered_Data
-local project_data = tier_data:
-    new(
-        {4096, 4, 32}, 
-        {4096, 4, 32}, 
-        {2048, 8, 32}, 
-        2100,
-        vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/"..vim.fn.sha256(vim.fn.getcwd()) .. ".mpack"
-    )
-function project_data:setdir()
-    self.dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/"..vim.fn.sha256(vim.fn.getcwd()) .. ".mpack"
-end
 ---@class Global_data: Tiered_Data
 local global_data = tier_data:
     new( 
         {8192, 4, 32}, 
         {8192, 4, 32}, 
         {8192, 8, 32}, 
-        2700,
-        vim.fn.stdpath("cache") .. "/cmp-adaptive-freq-autosave/global.mpack"
+        2700
     )
+    global_data.file = "/global".. ".mpack"
 global_data.word_id_map = require("cmp-adaptive-freq.word_id_map").new()
 
 function global_data:save_data ()
-    local dir = self.dir
+    local dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq"
+    local file = self.file
     local data = {
         word_id_map = self.word_id_map:serialize(),
         unigram_cms = self.frequency:serialize(),
@@ -133,11 +145,11 @@ function global_data:save_data ()
 
     -- Serialize with vim.mpack
     local blob = vim.mpack.encode(data)
-    vim.fn.mkdir(self.dir, "p")
+    vim.fn.mkdir(dir, "p")
 
-    local f, err = io.open(dir, "wb")
+    local f, err = io.open(dir .. file , "wb")
     if not f then
-        vim.notify("Failed to open file for writing: " .. tostring(err), vim.log.levels.ERROR)
+        vim.notify("Failed to open file for writing: "..dir .. tostring(err), vim.log.levels.ERROR)
         return
     end
 
@@ -151,12 +163,13 @@ function global_data:save_data ()
 end
 
 function global_data:load_data ()
-    local dir = self.dir
-	if vim.fn.filereadable(dir) == 0 then
-		vim.fn.writefile({}, dir)
+    local dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq"
+    local file = self.file
+	if vim.fn.filereadable(dir.. file) == 0 then
+		vim.fn.writefile({}, dir .. file)
 	end
 
-	local blob = table.concat(vim.fn.readfile(dir, "b"), "")
+	local blob = table.concat(vim.fn.readfile(dir .. file, "b"), "")
 	local ok, data = pcall(vim.mpack.decode, blob)
 	if not ok or type(data) ~= "table" then
 		return false
@@ -177,8 +190,7 @@ local session_data = tier_data:
         {512, 4, 16}, 
         {1024, 4, 16}, 
         {512, 8, 16},
-        100000000000,
-        ""
+        100000000000
     )
 session_data.save = false
 local tiers = {session_data, project_data, global_data}

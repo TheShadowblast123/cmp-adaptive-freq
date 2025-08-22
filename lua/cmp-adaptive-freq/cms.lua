@@ -9,15 +9,20 @@ local band, bor, lshift, rshift, bnot = bit.band, bit.bor, bit.lshift, bit.rshif
 ---@field rows table<number, table<number, number>> row -> [byte_index] = byte
 local CMS = {}
 CMS.__index = CMS
+---@param x number
+---@return number
+local function wrap32(x)
+    return x % 2^32
+end
 
 ---@param key number
 ---@param seed number
 ---@return number
 local function hash(key, seed)
-    key = band(key + seed, 0xFFFFFFFF)
-    key = band(key * 0xcc9e2d51, 0xFFFFFFFF)
-    key = band(lshift(key, 15) + rshift(key, 17), 0xFFFFFFFF)
-    key = band(key * 0x1b873593, 0xFFFFFFFF)
+    key = wrap32(key + seed)
+    key = wrap32(key * 0xcc9e2d51)
+    key = wrap32((key * 2^15 % 2^32) +math.floor(key / 2^17) )
+    key = band(key * 0x1b873593)
     return key
 end
 
