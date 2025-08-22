@@ -352,11 +352,6 @@ function M.setup(opts)
 	config = default_config
 	--config = vim.tbl_deep_extend("force", default_config, opts or {})
 
-	-- Initialize or load data
-	if not load_data() then
-		vim.notify("CMP-ADAPTIVE-FREQ: couldn't load some data, you might be on your own")
-	end
-
 	-- Setup autocmds
 	local group = vim.api.nvim_create_augroup("CmpAdaptiveFreq", {})
 
