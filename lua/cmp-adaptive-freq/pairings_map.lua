@@ -55,8 +55,6 @@ function Pairing_Map:increment_results(word, target)
     local word_key = self:get_key(word)
     local target_key = self:get_key(target)
     local bigram_key = self:combine_keys(word_key, target_key)
-    
-    -- Update CMS with the combined key
     self.cms:increment(bigram_key, 1)
 end
 
@@ -65,7 +63,6 @@ end
 ---@param key2 number
 ---@return number combined_key
 function Pairing_Map:combine_keys(key1, key2)
-    -- Simple mixing: shift first key and add second
     return bit.bor(bit.lshift(key1, 16), key2)
 end
 
@@ -113,17 +110,14 @@ function Pairing_Map:get_top_results(id, n)
     local all_results = self:get_results(id)
     local sorted = {}
     
-    -- Convert to sortable table
     for target_id, score in pairs(all_results) do
         table.insert(sorted, {id = target_id, score = score})
     end
     
-    -- Sort by score descending
     table.sort(sorted, function(a, b) 
         return a.score > b.score 
     end)
     
-    -- Return top N results
     local top_results = {}
     for i = 1, math.min(n, #sorted) do
         top_results[sorted[i].id] = sorted[i].score

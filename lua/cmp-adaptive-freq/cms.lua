@@ -137,8 +137,6 @@ function CMS:json_serialize()
         counter_bits = self.counter_bits,
         rows = {}
     }
-    
-    -- Convert each row to a JSON-compatible format
     for i = 1, self.depth do
         data.rows[i] = {}
         for j = 1, self.width do
@@ -149,7 +147,7 @@ function CMS:json_serialize()
     return data
 end
 
--- JSON-compatible deserialization for CMS
+
 function CMS.json_deserialize(data)
     if type(data) ~= "table" then
         return nil
@@ -200,7 +198,7 @@ function CMS:increment(key, delta)
 end
 
 function CMS:decay()
-    local factor = 0.9  -- Default to halving counts
+    local factor = 0.9
     
     for i = 1, self.depth do
         for j = 1, self.width do

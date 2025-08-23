@@ -24,7 +24,6 @@ function Word_ID_Map:get_id(word)
 	if id then
 		return id
 	end
-	-- Assign new ID
 	local new_id = self.next_id
 	self.next_id = new_id + 1
 
@@ -38,7 +37,7 @@ function Word_ID_Map:set_ids(words)
 	for word, id in pairs(words) do
 		self.word_to_id[word] = id
 		self.id_to_word[id] = word
-		if id > max_id then -- in case somehow the data is not in order
+		if id > max_id then -- the data is in fact not in order somehow
 			max_id = id
 		end
 	end
@@ -61,7 +60,7 @@ end
 
 -- @param self Word_ID_Map
 -- @param id number
--- @return string|nil word # the word, or nil if `id` is unassigned
+-- @return string|nil # nil if `id` is unassigned
 function Word_ID_Map:get_word(id)
 	return self.id_to_word[id]
 end
