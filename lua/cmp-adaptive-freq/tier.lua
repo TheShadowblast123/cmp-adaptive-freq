@@ -69,11 +69,12 @@ local project_data = tier_data:
         2100
     )
     project_data.dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq"
-    project_data.file = "/"..vim.fn.sha256(vim.fn.getcwd()) .. ".mpack"
+    project_data.file = "/"..vim.fn.sha256(vim.fn.getcwd()) .. ".json"
 function project_data:setdir()
-    self.file = vim.fn.sha256(vim.fn.getcwd()) .. ".mpack"
+    self.file = vim.fn.sha256(vim.fn.getcwd()) .. ".json"
 end
 function project_data:save_data ()
+
     local dir = self.dir
     local file = self.file
     local data = {
@@ -81,23 +82,42 @@ function project_data:save_data ()
         relation_map = self.relations_map:serialize(),
         pairing_map = self.pairs:serialize(),
     }
-
+	if vim.fn.filereadable(dir.. file) == 0 then
+		vim.fn.writefile({}, dir.. file)
+	end
     -- Serialize with vim.mpack
-    local blob = vim.mpack.encode(data)
+    -- local blob = vim.mpack.encode(data)
+    -- vim.fn.mkdir(dir, "p")
+
+    -- local f, err = io.open(dir .. file, "wb")
+    -- if not f then
+        -- vim.notify("Failed to open file for writing: "..dir .. tostring(err), vim.log.levels.ERROR)
+        -- return
+    -- end
+
+    -- local ok, write_err = pcall(function() f:write(blob) end)
+    -- f:close()
+
+    -- if not ok then
+        -- vim.notify("Failed to write data: " .. tostring(write_err), vim.log.levels.ERROR)
+    -- end
+	-- Serialize with JSON
+	local json_str = vim.fn.json_encode(data)
     vim.fn.mkdir(dir, "p")
 
-    local f, err = io.open(dir .. file, "wb")
+    local f, err = io.open(dir .. file, "w")
     if not f then
         vim.notify("Failed to open file for writing: "..dir .. tostring(err), vim.log.levels.ERROR)
         return
     end
 
-    local ok, write_err = pcall(function() f:write(blob) end)
+    local ok, write_err = pcall(function() f:write(json_str) end)
     f:close()
 
     if not ok then
         vim.notify("Failed to write data: " .. tostring(write_err), vim.log.levels.ERROR)
     end
+    self.update_count = 0
 end
 
 
@@ -108,18 +128,36 @@ function project_data:load_data ()
     local file = self.file
 	if vim.fn.filereadable(dir.. file) == 0 then
 		vim.fn.writefile({}, dir.. file)
-	end
-
-	local blob = table.concat(vim.fn.readfile(dir .. file, "b"), "")
-	local ok, data = pcall(vim.mpack.decode, blob)
-	if not ok or type(data) ~= "table" then
 		return false
 	end
 
-	self.frequency.deserialize(data.unigram_cms)
-	self.relations_map:deserialize(data.relation_map)
+	-- local blob = table.concat(vim.fn.readfile(dir .. file, "b"), "")
+	-- local ok, data = pcall(vim.mpack.decode, blob)
+	-- if not ok or type(data) ~= "table" then
+		-- return false
+	-- end
+
+	-- self.frequency.deserialize(data.unigram_cms)
+	-- self.relations_map:deserialize(data.relation_map)
+    -- self.pairs:deserialize(data.pairing_map)
+    -- self.update_count = 0
+	-- return true
+	
+		-- Json
+    local json_str = table.concat(vim.fn.readfile(dir .. file), "")
+    local ok, data = pcall(vim.fn.json_decode, json_str)
+    if not ok or type(data) ~= "table" then
+		if data == "Vim:E474: Attempt to decode a blank string" then
+			return true
+		end
+        vim.notify("Failed to decode JSON data for project " .. tostring(data), vim.log.levels.ERROR)
+        return false
+    end
+
+    -- Deserialize each component
+    self.frequency:json_deserialize(data.unigram_cms)
+    self.relations_map:deserialize(data.relation_map)
     self.pairs:deserialize(data.pairing_map)
-    self.update_count = 0
 	return true
 end
 ---@class Global_data: Tiered_Data
@@ -130,30 +168,55 @@ local global_data = tier_data:
         {8192, 8, 32}, 
         2700
     )
-    global_data.file = "/global".. ".mpack"
+    global_data.file = "/global".. ".json"
 global_data.word_id_map = require("cmp-adaptive-freq.word_id_map").new()
-
+global_data.total_updates = 0
+global_data.decay_threshold = 300000
 function global_data:save_data ()
+    if self.total_updates >= self.decay_threshold then
+        self:apply_decay()
+        self.total_updates = 0  -- Reset counter after decay
+    end
     local dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq"
     local file = self.file
     local data = {
         word_id_map = self.word_id_map:serialize(),
-        unigram_cms = self.frequency:serialize(),
+        unigram_cms = self.frequency:json_serialize(),
         relation_map = self.relations_map:serialize(),
         pairing_map = self.pairs:serialize(),
+		total_updates = self.total_updates,
     }
+	if vim.fn.filereadable(dir.. file) == 0 then
+		vim.fn.writefile({}, dir.. file)
+	end
+    -- -- Serialize with vim.mpack
+    -- local blob = vim.mpack.encode(data)
+    -- vim.fn.mkdir(dir, "p")
 
-    -- Serialize with vim.mpack
-    local blob = vim.mpack.encode(data)
+    -- local f, err = io.open(dir .. file , "wb")
+    -- if not f then
+        -- vim.notify("Failed to open file for writing: "..dir .. tostring(err), vim.log.levels.ERROR)
+        -- return
+    -- end
+
+    -- local ok, write_err = pcall(function() f:write(blob) end)
+    -- f:close()
+
+    -- if not ok then
+        -- vim.notify("Failed to write data: " .. tostring(write_err), vim.log.levels.ERROR)
+    -- end
+    -- self.update_count = 0
+	    -- Serialize with JSON
+	local json_str = vim.fn.json_encode(data)
     vim.fn.mkdir(dir, "p")
 
-    local f, err = io.open(dir .. file , "wb")
+    local f, err = io.open(dir .. file, "w")
     if not f then
-        vim.notify("Failed to open file for writing: "..dir .. tostring(err), vim.log.levels.ERROR)
+        vim.notify("Failed to open file for writing: ".. dir .. tostring(err), vim.log.levels.ERROR)
         return
     end
 
-    local ok, write_err = pcall(function() f:write(blob) end)
+    local ok, write_err = pcall(function() f:write(json_str) end)
     f:close()
 
     if not ok then
@@ -167,22 +230,49 @@ function global_data:load_data ()
     local file = self.file
 	if vim.fn.filereadable(dir.. file) == 0 then
 		vim.fn.writefile({}, dir .. file)
+		return
 	end
+	-- mpack
+	-- local blob = table.concat(vim.fn.readfile(dir .. file, "b"), "")
+	-- local ok, data = pcall(vim.mpack.decode, blob)
+	-- if not ok or type(data) ~= "table" then
+		-- print(data)
+		-- return false
+	-- end
+	-- local debug_output = ""
+	-- for key, _ in pairs(data) do
+		-- debug_output = debug_output .. tostring(key) .. ", "
+	-- end
+	-- print("SUCESS: " .. debug_output)
+	-- self.word_id_map:deserialize(data.word_id_map)
+	-- self.frequency.deserialize(data.unigram_cms)
+	-- self.relations_map:deserialize(data.relation_map)
+    -- self.pairs:deserialize(data.pairing_map)
+	
+	-- Json
+    local json_str = table.concat(vim.fn.readfile(dir .. file), "")
+    local ok, data = pcall(vim.fn.json_decode, json_str)
+    if not ok or type(data) ~= "table" then
+		if data == "Vim:E474: Attempt to decode a blank string" then
+			return true
+		end
+        vim.notify("Failed to decode JSON data for global " .. tostring(data), vim.log.levels.ERROR)
+        return false
+    end
 
-	local blob = table.concat(vim.fn.readfile(dir .. file, "b"), "")
-	local ok, data = pcall(vim.mpack.decode, blob)
-	if not ok or type(data) ~= "table" then
-		return false
-	end
-
-	self.word_id_map:deserialize(data.word_id_map)
-	self.frequency.deserialize(data.unigram_cms)
-	self.relations_map:deserialize(data.relation_map)
+    -- Deserialize each component
+    self.word_id_map:deserialize(data.word_id_map)
+    self.frequency:json_deserialize(data.unigram_cms)
+    self.relations_map:deserialize(data.relation_map)
     self.pairs:deserialize(data.pairing_map)
-
+	self.total_updates = data.total_updates
 	return true
 end 
-
+function global_data:apply_decay()
+    self.frequency:decay()
+    self.pairs:decay()
+    self.relations_map:decay()
+end
 
 ---@type Tiered_Data
 local session_data = tier_data:

@@ -24,7 +24,7 @@ function Relation_Map:new(width, depth, counter_bits)
 end
 function Relation_Map:serialize()
     return {
-        cms = self.cms:serialize(),
+        cms = self.cms:json_serialize(),
         id_map = self.id_map,
         reverse_map = self.reverse_map,
         next_key = self.next_key
@@ -66,6 +66,10 @@ end
 function Relation_Map:combine_keys(key1, key2)
     -- Use XOR to create a symmetric relation (order doesn't matter)
     return bit.bxor(key1, key2)
+end
+
+function Relation_Map:decay()
+	self.cms:decay()
 end
 
 ---@param self Relation_Map
@@ -127,7 +131,7 @@ end
 --- Deserialize from storage
 ---@param data table
 function Relation_Map:deserialize(data)
-    self.cms = data.cms
+    self.cms = self.cms:json_deserialize(data.cms) or self.cms
     self.id_map = data.id_map
     self.reverse_map = data.reverse_map
     self.next_key = data.next_key

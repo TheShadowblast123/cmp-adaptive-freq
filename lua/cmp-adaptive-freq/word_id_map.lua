@@ -68,13 +68,24 @@ end
 --- Serialize for storage
 ---@return table {words: table<string, number>}
 function Word_ID_Map:serialize()
-    return {words = self.word_to_id}
+    return self.word_to_id
 end
 
 --- Deserialize from storage
 ---@param data table {words: table<string, number>}
 function Word_ID_Map:deserialize(data)
-    self:set_ids(data.words)
+    self.word_to_id = {}
+    self.id_to_word = {}
+    
+    local max_id = 0
+    for word, id in pairs(data) do
+        self.word_to_id[word] = id
+        self.id_to_word[id] = word
+        if id > max_id then
+            max_id = id
+        end
+    end
+    self.next_id = max_id + 1
 end
 
 return Word_ID_Map

@@ -1,32 +1,26 @@
 local cmp = require("cmp")
 local uv = vim.loop
 
--- Modules
 local tier = require("cmp-adaptive-freq.tier")
 local global = tier[3]
 local project = tier[2]
 local session = tier[1]
+
 local last_line = ""
 local last_line_word_count = 0
 local last_line_number = -1
 local last_diff = ""
 local M = {}
-local default_config = {
-	max_items = 5,
-	case_sensitive = true,
-	types = { "markdown", "org", "text", "plain", "latex", "asciidoc" },
-}
+
 M.new = function()
 	return setmetatable({}, {__index = M})
 end
 local config = {}
 
--- Global instances
 
 ---@param buf number
 local function scan_buffer(buf)
 	if not vim.api.nvim_buf_is_loaded(buf) then
-		print("No buffer")
 		return
 	end
 
@@ -36,6 +30,14 @@ local function scan_buffer(buf)
 	for _, line in ipairs(lines) do
 		for word in line:gmatch("%S+") do
 			local word_id = global.word_id_map:get_id(word)
+			if #word < 4 then
+				table.insert(window, word_id)
+				if #window > window_size then
+					table.remove(window, 1)
+				end
+				goto continue
+			end
+			
 			if math.random() < 0.9 then
 				project.frequency:increment(word_id, 1)
 				if math.random() < 0.8 then
@@ -43,13 +45,11 @@ local function scan_buffer(buf)
 				end
 			end
 
-				-- Add to sliding window
 			table.insert(window, word_id)
 			if #window > window_size then
 				table.remove(window, 1)
 			end
 
-				-- Process bigrams and relations
 			if #window > 1 then
 				-- Bigram: current word with previous word
 					project.pairs:increment_results(window[#window - 1], word_id)
@@ -81,17 +81,18 @@ local function scan_buffer(buf)
 						#window - i  -- distance weight
 					)
 				end
+				
 			end
+			::continue::
 		end
 	end
 	global:save_data()
 	project:save_data()
 end
+
 ---@param buf number
 local function scan_line(buf)
-	local p = "scan failed"
 	if not vim.api.nvim_buf_is_loaded(buf) then
-		print("No buffer")
 		return
 	end
 	---@type string
@@ -100,13 +101,10 @@ local function scan_line(buf)
 	if line == last_line or last_line_number ~= vim.fn.line('.') then
 		last_line_number = vim.fn.line('.')
 		last_line = line
-	
-		print(p)
 		return
 	end
 	local quickdiff, count = line:gsub("%s+","")
-	if count == last_line_word_count or quickdiff == last_diff then
-		print(p)
+	if count == last_line_word_count or quickdiff < last_diff + 3 then
 		return
 	end
 	last_diff = quickdiff
@@ -114,7 +112,6 @@ local function scan_line(buf)
 		-- we don't decrement
 		last_line = line
 		last_line_word_count = count
-		print(p)
 		return
 	end
 	if #line == #last_line + 1 then
@@ -192,34 +189,24 @@ local function scan_line(buf)
 		session.relations_map:increment_results(
 			word_id,
 			words[i],
-			#words - i  -- distance weight
+			#words - i
 		)
 		if math.random() < 0.6 then
 			project.relations_map:increment_results(
 				word_id,
 				words[i],
-				#words - i  -- distance weight
+				#words - i
 			)
 			if math.random() < 0.5 then
 				global.relations_map:increment_results(
 					word_id,
 					words[i],
-					#words- i  -- distance weight
+					#words- it
 				)
 			end
 		end
 
 	end
-end
-
---- Load data for current directory
----@param change_dir boolean
----@return boolean
-local function load_data(change_dir)
-	if change_dir then
-		project:setdir()
-	end
-	return project:load_data() and global:load_data()
 end
 
 ---@param ft string
@@ -228,13 +215,13 @@ local function is_supported_ft()
 	local ft = vim.bo.filetype
 	return ft == "markdown" or ft == "org" or ft == "text" or ft == "plain" or ft == "latex" or ft == "asciidoc"
 end
----comment
+
 ---@param session_score integer
 ---@param project_score integer
 ---@param global_score integer
 ---@return number
 local function formula (session_score, project_score, global_score)
-	return (session_score * 2) + (project_score * 0.6) + (global_score * 0.2)
+	return (math.log(session_score) * 3 + 3) + (math.log(project_score) -1) + (math.log(global_score) -2)
 end
 ---@param id number
 ---@return number score
@@ -248,7 +235,6 @@ local function calculate_score(id, context)
 	local bi_score = 0
 	local rel_score = 0
 	
-	-- Bigram boost (last word)
 	if #context > 0 then
 		local prev_id = context[#context]
 		bi_score = formula(
@@ -263,10 +249,8 @@ local function calculate_score(id, context)
 		rel_score = formula(
 			session.relations_map:get_score(ctx_id, id),
 			project.relations_map:get_score(ctx_id, id),
-			global.relations_map:get_score(ctx_id, id )
+			global.relations_map:get_score(ctx_id, id)
 		)
-
-
 	end
 	score = (math.log(uni_score + 1) * 0.55) + (math.log(bi_score + 1) * 0.35) + (math.log(rel_score + 1) * 0.1)
 	return score
@@ -274,7 +258,7 @@ end
 M.get_keyword_pattern = function()
     return [[.]]
 end
---- Source completion function
+
 function M:complete(params, callback)
 	local line = params.context.cursor_before_line
 	local input = line:match("%S+$") or ""
@@ -282,17 +266,15 @@ function M:complete(params, callback)
 	if input == "" then
 		return callback({ items = {} })
 	end
+	local min_length = #input + 2
 
-	-- Normalize input
-
-	-- Get candidates
 	local candidates = {}
 	for word, id in pairs(global.word_id_map.word_to_id) do
-		if word:find(input, 1, true) == 1 then
+		if word:find(input, 1, true) == 1 and #word >= min_length then
 			table.insert(candidates, {
 				word = word,
 				id = id,
-				score = 0,  -- Will be calculated later
+				score = 0,
 			})
 		end
 	end
@@ -301,7 +283,6 @@ function M:complete(params, callback)
 		return callback({ items = {} })
 	end
 
-	-- Build context
 	local context = {}
 	for l in line:gmatch("%S+") do
 		if #context == 11 then
@@ -311,13 +292,12 @@ function M:complete(params, callback)
 	end
 	table.remove(context,#context)
 	if #context > 0 then
-		-- Score candidates
+
 		for _, candidate in ipairs(candidates) do
 			candidate.score = calculate_score(candidate.id, context)
 		end
 	end
 
-	-- Sort by score
 	table.sort(candidates, function(a, b)
 		return a.score > b.score
 	end)
@@ -340,32 +320,64 @@ function M:is_available()
 	local ft = vim.bo.filetype
 	return ft == "markdown" or ft == "org" or ft == "text" or ft == "plain" or ft == "latex" or ft == "asciidoc"
 end
---- Setup function
-function M.setup(opts)
-	config = default_config
-	--config = vim.tbl_deep_extend("force", default_config, opts or {})
 
-	-- Setup autocmds
+function M.setup(opts)
+	config.max_items = opts.max_items or 5
+
 	local group = vim.api.nvim_create_augroup("CmpAdaptiveFreq", {})
 
-	-- Scan buffers on open
-	vim.api.nvim_create_user_command("CmpAdaptiveFreqScanBuffer", function ()
-	local buf = vim.api.nvim_get_current_buf()
-	scan_buffer(buf)
-	end,
-	{}
+	vim.api.nvim_create_user_command("CmpAdaptiveFreqScanBuffer", 
+		function ()
+			local buf = vim.api.nvim_get_current_buf()
+			scan_buffer(buf)
+		end,
+		{}
+	)
+	vim.api.nvim_create_user_command("CmpAdaptiveFreqDeleteGlobalData", 
+		function ()
+			local filepath = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq/global".. ".json"
+			
+			local choice = vim.fn.confirm('Delete file: ' .. filepath .. ' the global autocomplete data?', "&Yes\n&No", 2)
+			if choice == 1 then
+				local success = vim.fn.delete(filepath) == 0
+				if success then
+					vim.notify('File deleted: ' .. filepath, vim.log.levels.INFO)
+				else
+					vim.notify('Failed to delete file', vim.log.levels.ERROR)
+				end
+			end
+		end,
+		{}
+	)
+	vim.api.nvim_create_user_command("CmpAdaptiveFreqDeleteProjectData", 
+		function ()
+			if not is_supported_ft() then
+				vim.notify("unsure of project to delete, enter a buffer first!")
+				return
+			end
+			local filepath = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq" .. project.file
+			
+			local choice = vim.fn.confirm('Delete file: ' .. filepath .. ' the project autocomplete data?', "&Yes\n&No", 2)
+			if choice == 1 then
+				local success = vim.fn.delete(filepath) == 0
+				if success then
+					vim.notify('File deleted: ' .. filepath, vim.log.levels.INFO)
+				else
+					vim.notify('Failed to delete file', vim.log.levels.ERROR)
+				end
+			end
+		end,
+		{}
 	)
 	vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost" }, {
 		group = group,
 		callback = function(args)
 			if is_supported_ft(vim.bo[args.buf].filetype) then
-
 				global:load_data()
 				project:load_data()
 			end
 		end,
 	})
-	-- Scan on text changes
 	vim.api.nvim_create_autocmd("TextChangedI", {
 		group = group,
 		callback = function(args)
@@ -374,7 +386,7 @@ function M.setup(opts)
 			end
 		end,
 	})
-	vim.api.nvim_create_autocmd("BufLeave", {
+	vim.api.nvim_create_autocmd({"VimLeave", "BufLeave", "FocusLost"},  {
 		group = group,
 		callback = function(args)
 			if not is_supported_ft() then
@@ -385,13 +397,11 @@ function M.setup(opts)
 		end,
 	})
 
-		vim.fn.mkdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq", "p")
+	vim.fn.mkdir(vim.fn.stdpath("cache") .. "/cmp-adaptive-freq", "p")
 	vim.schedule(function()
 		cmp.register_source("cmp-adaptive-freq", M.new())
 
 	end)
-
-	
 end
 
 return M

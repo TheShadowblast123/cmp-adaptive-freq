@@ -27,7 +27,7 @@ end
 
 function Pairing_Map:serialize()
     return {
-        cms = self.cms:serialize(),
+        cms = self.cms:json_serialize(),
         id_map = self.id_map,
         reverse_map = self.reverse_map,
         next_key = self.next_key
@@ -135,14 +135,20 @@ end
 --- Serialize for storage
 ---@return table serialized_data
 
+function Pairing_Map:decay()
+	self.cms:decay()
+end
 
 --- Deserialize from storage
 ---@param data table
 function Pairing_Map:deserialize(data)
-    self.cms = data.cms
-    self.id_map = data.id_map
-    self.reverse_map = data.reverse_map
-    self.next_key = data.next_key
+    local new_cms = CMS.json_deserialize(data.cms)
+    if new_cms then
+        self.cms = new_cms
+    end
+    self.id_map = data.id_map or {}
+    self.reverse_map = data.reverse_map or {}
+    self.next_key = data.next_key or 1
 end
 
 return Pairing_Map

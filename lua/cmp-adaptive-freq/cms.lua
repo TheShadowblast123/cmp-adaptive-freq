@@ -130,7 +130,44 @@ function CMS.deserialize(data)
     
     return self
 end
+function CMS:json_serialize()
+    local data = {
+        width = self.width,
+        depth = self.depth,
+        counter_bits = self.counter_bits,
+        rows = {}
+    }
+    
+    -- Convert each row to a JSON-compatible format
+    for i = 1, self.depth do
+        data.rows[i] = {}
+        for j = 1, self.width do
+            data.rows[i][j] = self.rows[i][j]
+        end
+    end
+    
+    return data
+end
 
+-- JSON-compatible deserialization for CMS
+function CMS.json_deserialize(data)
+    if type(data) ~= "table" then
+        return nil
+    end
+    
+    local self = CMS.new(data.width, data.depth, data.counter_bits)
+    
+    -- Restore the counter values
+    for i = 1, data.depth do
+        for j = 1, data.width do
+            if data.rows[i] and data.rows[i][j] then
+                self.rows[i][j] = data.rows[i][j]
+            end
+        end
+    end
+    
+    return self
+end
 -- @param self CMS
 -- @param row number      — which hash row (1..depth)
 -- @param key number      — (e.g. word_id)
@@ -162,7 +199,15 @@ function CMS:increment(key, delta)
     end
 end
 
-
+function CMS:decay()
+    local factor = 0.9  -- Default to halving counts
+    
+    for i = 1, self.depth do
+        for j = 1, self.width do
+            self.rows[i][j] = math.max(0, math.floor(self.rows[i][j] * factor))
+        end
+    end
+end
 ---@param key number Key to estimate
 ---@return number Estimated count
 function CMS:estimate(key)
