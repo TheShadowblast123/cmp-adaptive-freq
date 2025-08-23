@@ -369,7 +369,7 @@ function M.setup(opts)
 		end,
 		{}
 	)
-	vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost" }, {
+	vim.api.nvim_create_autocmd("BufReadPost", {
 		group = group,
 		callback = function(args)
 			if is_supported_ft(vim.bo[args.buf].filetype) then
