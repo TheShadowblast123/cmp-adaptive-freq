@@ -10,6 +10,14 @@ This is cmp-adaptive-freq working in an environment where it has the bible, Shak
 
 The purpose of this is to give you more accurate results overtime, though it will also take in your mistakes too!
 This is a tool meant for writers
+
+it auto saves any update to word data on leaving a buffer, nvim or whenever focus is lost
+
+### Commands
+- :CmpAdaptiveFreqScanBuffer => scans current buffer and adds it to global and project data (warning, can be slow, use to get the data up quickly)
+- :CmpAdaptiveFreqDeleteGlobalData => deletes global data
+- :CmpAdaptiveFreqDeleteProjectData = > deletes current buffer's project data
+- all commands are large to ensure no accidents 
 ## ⇁ Install
 - [neovim](https://github.com/neovim/neovim) 0.8.0+ required 
 - [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) required
