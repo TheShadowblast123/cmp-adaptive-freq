@@ -1,4 +1,6 @@
 local cms = require("cmp-adaptive-freq.cms")
+local rel = require("cmp-adaptive-freq.relations_map")
+local pair = require("cmp-adaptive-freq.pairings_map")
 ---@alias width integer
 ---@alias depth integer
 ---@alias counter_bits integer
@@ -225,15 +227,15 @@ function global_data:save_data ()
     self.update_count = 0
 end
 function project_data:reset()
-    self.frequency = self.frequency.new(2048, 8, 32)
-    self.relations_map:new(4096, 4, 32)
-    self.pairs:new(4096, 4, 32)
+    self.frequency = cms.new(2048, 8, 32)
+    self.relations_map = rel.new(4096, 4, 32)
+    self.pairs = pair.new(4096, 4, 32)
     
 end
 function global_data:reset()
-    self.frequency = self.frequency.new(8192, 8, 32)
-    self.relations_map:new(8192, 4, 32)
-    self.pairs:new(8192, 8, 32)
+    self.frequency = cms.new(8192, 8, 32)
+    self.relations_map = rel.new(8192, 4, 32)
+    self.pairs = pair.new(8192, 8, 32)
 end
 function global_data:load_data ()
     local dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq"
