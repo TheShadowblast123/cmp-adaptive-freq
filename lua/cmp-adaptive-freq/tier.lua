@@ -224,7 +224,17 @@ function global_data:save_data ()
     end
     self.update_count = 0
 end
-
+function project_data:reset()
+    self.frequency = self.frequency.new(2048, 8, 32)
+    self.relations_map:new(4096, 4, 32)
+    self.pairs:new(4096, 4, 32)
+    
+end
+function global_data:reset()
+    self.frequency = self.frequency.new(8192, 8, 32)
+    self.relations_map:new(8192, 4, 32)
+    self.pairs:new(8192, 8, 32)
+end
 function global_data:load_data ()
     local dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq"
     local file = self.file

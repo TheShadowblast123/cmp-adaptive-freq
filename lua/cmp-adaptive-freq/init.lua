@@ -331,23 +331,27 @@ function M.setup(opts)
 			local buf = vim.api.nvim_get_current_buf()
 			scan_buffer(buf)
 		end,
-		{}
+		{ desc = "Delete current global adaptive frequency data" }
 	)
 	vim.api.nvim_create_user_command("CmpAdaptiveFreqDeleteGlobalData", 
 		function ()
+
 			local filepath = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq/global".. ".json"
-			
+			if vim.fn.filereadable(filepath) ~= 1 then
+				vim.notify('✗ Global data file does not exist apparently...', vim.log.levels.WARN)
+				return
+			end
 			local choice = vim.fn.confirm('Delete file: ' .. filepath .. ' the global autocomplete data?', "&Yes\n&No", 2)
 			if choice == 1 then
-				local success = vim.fn.delete(filepath) == 0
-				if success then
-					vim.notify('File deleted: ' .. filepath, vim.log.levels.INFO)
+				if vim.fn.delete(filepath) == 0 then
+					global:reset()
+					vim.notify('✓ Global data deleted', vim.log.levels.INFO)
 				else
-					vim.notify('Failed to delete file', vim.log.levels.ERROR)
+					vim.notify('✗ Failed to delete global data', vim.log.levels.ERROR)
 				end
 			end
 		end,
-		{}
+		{ desc = "Delete current global adaptive frequency data" }
 	)
 	vim.api.nvim_create_user_command("CmpAdaptiveFreqDeleteProjectData", 
 		function ()
@@ -356,18 +360,21 @@ function M.setup(opts)
 				return
 			end
 			local filepath = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq" .. project.file
-			
+			if vim.fn.filereadable(filepath) ~= 1 then
+				vim.notify('✗ Project data file does not exist apparently...', vim.log.levels.WARN)
+				return
+			end
 			local choice = vim.fn.confirm('Delete file: ' .. filepath .. ' the project autocomplete data?', "&Yes\n&No", 2)
 			if choice == 1 then
-				local success = vim.fn.delete(filepath) == 0
-				if success then
-					vim.notify('File deleted: ' .. filepath, vim.log.levels.INFO)
+				if vim.fn.delete(filepath) == 0 then
+					project:reset()
+					vim.notify('✓ Project data deleted', vim.log.levels.INFO)
 				else
-					vim.notify('Failed to delete file', vim.log.levels.ERROR)
+					vim.notify('✗ Failed to delete project data', vim.log.levels.ERROR)
 				end
 			end
 		end,
-		{}
+		{ desc = "Delete project adaptive frequency data" }
 	)
 	vim.api.nvim_create_autocmd("BufReadPost", {
 		group = group,

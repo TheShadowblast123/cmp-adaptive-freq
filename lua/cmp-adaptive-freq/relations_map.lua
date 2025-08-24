@@ -123,13 +123,18 @@ function Relation_Map:relation_exists(id1, id2)
     return (self.cms:estimate(relation_key) or 0) > 0
 end
 
-
+local function clean (t)
+	for k, v in pairs(t) do
+		t[tonumber(k)] = tonumber(v)
+	end
+	return t
+end
 --- Deserialize from storage
 ---@param data table
 function Relation_Map:deserialize(data)
     self.cms = self.cms:json_deserialize(data.cms) or self.cms
-    self.id_map = data.id_map
-    self.reverse_map = data.reverse_map
-    self.next_key = data.next_key
+    self.id_map = clean(data.id_map)
+    self.reverse_map = clean(data.reverse_map)
+    self.next_key = tonumber(data.next_key)
 end
 return Relation_Map

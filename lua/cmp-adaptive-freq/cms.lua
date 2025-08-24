@@ -152,14 +152,16 @@ function CMS.json_deserialize(data)
     if type(data) ~= "table" then
         return nil
     end
-    
-    local self = CMS.new(data.width, data.depth, data.counter_bits)
+    local width = tonumber(data.width)
+	local depth = tonumber(data.depth)
+	local counter_bits = tonumber(data.counter_bits)
+    local self = CMS.new(width, depth, counter_bits)
     
     -- Restore the counter values
-    for i = 1, data.depth do
-        for j = 1, data.width do
+    for i = 1, tonumber(data.depth) do
+        for j = 1, tonumber(data.width) do
             if data.rows[i] and data.rows[i][j] then
-                self.rows[i][j] = data.rows[i][j]
+                self.rows[i][j] = tonumber(data.rows[i][j])
             end
         end
     end

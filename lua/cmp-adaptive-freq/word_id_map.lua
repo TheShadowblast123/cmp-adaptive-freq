@@ -77,7 +77,9 @@ function Word_ID_Map:deserialize(data)
     self.id_to_word = {}
     
     local max_id = 0
-    for word, id in pairs(data) do
+    for k, v in pairs(data) do
+		local word = tonumber(k)
+		local id = tonumber(v)
         self.word_to_id[word] = id
         self.id_to_word[id] = word
         if id > max_id then

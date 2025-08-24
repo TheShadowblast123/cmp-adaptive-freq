@@ -132,7 +132,12 @@ end
 function Pairing_Map:decay()
 	self.cms:decay()
 end
-
+local function clean (t)
+	for k, v in pairs(t) do
+		t[tonumber(k)] = tonumber(v)
+	end
+	return t
+end
 --- Deserialize from storage
 ---@param data table
 function Pairing_Map:deserialize(data)
@@ -140,9 +145,10 @@ function Pairing_Map:deserialize(data)
     if new_cms then
         self.cms = new_cms
     end
-    self.id_map = data.id_map or {}
-    self.reverse_map = data.reverse_map or {}
-    self.next_key = data.next_key or 1
+    self.id_map = clean(data.id_map) or {}
+	
+    self.reverse_map = clean(data.id_map) or {}
+    self.next_key = tonumber(data.next_key) or 1
 end
 
 return Pairing_Map
