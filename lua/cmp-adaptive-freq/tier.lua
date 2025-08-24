@@ -228,14 +228,14 @@ function global_data:save_data ()
 end
 function project_data:reset()
     self.frequency = cms.new(2048, 8, 32)
-    self.relations_map = rel.new(4096, 4, 32)
-    self.pairs = pair.new(4096, 4, 32)
+    self.relations_map = rel:new(4096, 4, 32)
+    self.pairs = pair:new(4096, 4, 32)
     
 end
 function global_data:reset()
     self.frequency = cms.new(8192, 8, 32)
-    self.relations_map = rel.new(8192, 4, 32)
-    self.pairs = pair.new(8192, 8, 32)
+    self.relations_map = rel:new(8192, 4, 32)
+    self.pairs = pair:new(8192, 8, 32)
 end
 function global_data:load_data ()
     local dir = vim.fn.stdpath("cache") .. "/cmp-adaptive-freq"
