@@ -201,7 +201,7 @@ local function scan_line(buf)
 				global.relations_map:increment_results(
 					word_id,
 					words[i],
-					#words- it
+					#words- i
 				)
 			end
 		end
