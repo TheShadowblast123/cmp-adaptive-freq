@@ -19,9 +19,9 @@ end
 ---@param seed number
 ---@return number
 local function hash(key, seed)
-    key = wrap32(key + seed)
-    key = wrap32(key * 0xcc9e2d51)
-    key = wrap32((key * 2^15 % 2^32) +math.floor(key / 2^17) )
+    key = key + seed
+    key = key * 0xcc9e2d51
+    key = (key * 2^15 % 2^32) +math.floor(key / 2^17)
     key = band(key * 0x1b873593)
     return key
 end
