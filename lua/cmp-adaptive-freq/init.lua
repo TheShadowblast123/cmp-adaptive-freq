@@ -104,7 +104,7 @@ local function scan_line(buf)
 		return
 	end
 	local quickdiff, count = line:gsub("%s+","")
-	if count == last_line_word_count or quickdiff < last_diff + 3 then
+	if count == last_line_word_count or #quickdiff < #last_diff + 3 then
 		return
 	end
 	last_diff = quickdiff
