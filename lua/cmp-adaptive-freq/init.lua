@@ -29,6 +29,9 @@ local function scan_buffer(buf)
 	local window_size = 10
 	for _, line in ipairs(lines) do
 		for word in line:gmatch("%S+") do
+			if not string.find(word, "%w") then
+				goto continue
+			end
 			local word_id = global.word_id_map:get_id(word)
 			if #word < 4 then
 				table.insert(window, word_id)
@@ -138,6 +141,9 @@ local function scan_line(buf)
 		table.insert(context, w)
 	end
 	local word = context[#context]
+	if not string.find(word, "%w") then
+		return
+	end
 	local word_id = global.word_id_map:get_id(word)
 	session.frequency:increment(word_id, 1)
 	if math.random() < 0.9 then
